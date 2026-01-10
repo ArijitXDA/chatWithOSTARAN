@@ -41,7 +41,7 @@ export async function POST(request: Request) {
             role: 'user',
             content: content,
             token_count: estimateTokens(content),
-          })
+          } as any) // Type assertion to fix build error
 
         if (userMsgError) {
           console.error('Error saving user message:', userMsgError)
@@ -99,7 +99,7 @@ export async function POST(request: Request) {
           content: fullResponse,
           model_used: config.model,
           token_count: estimateTokens(fullResponse),
-        })
+        } as any) // Type assertion to fix build error
 
         // Update thread updated_at and title (if first message)
         if (history.length === 0) {
