@@ -1,4 +1,11 @@
-/* Add these animations to your existing globals.css file */
+/* Tailwind base layers — REQUIRED */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================= */
+/* Custom animations & styling  */
+/* ============================= */
 
 @keyframes shimmer {
   0% {
