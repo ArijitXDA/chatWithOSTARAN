@@ -1,6 +1,4 @@
-// @ts-nocheck
-import { createServiceClient } from '@/lib/supabase/server'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
@@ -22,20 +20,20 @@ export async function POST(request: Request) {
       )
     }
 
-    // Create Supabase client for auth
-    const supabase = createClient()
+    // ✅ SERVER-SIDE Supabase client (SSR-safe)
+    const supabase = await createClient()
 
     // 1. Create auth user
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
-      },
-    })
+    const { data: authData, error: authError } =
+      await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+        },
+      })
 
     if (authError) {
-      console.error('Auth error:', authError)
       return NextResponse.json(
         { error: authError.message },
         { status: 400 }
@@ -49,8 +47,8 @@ export async function POST(request: Request) {
       )
     }
 
-    // 2. Create profile using service role client (bypasses RLS)
-    const serviceClient = await createServiceClient()
+    // 2. Create profile using SERVICE ROLE (bypass RLS)
+    const serviceClient = createServiceClient()
 
     const { error: profileError } = await serviceClient
       .from('profiles')
@@ -62,11 +60,9 @@ export async function POST(request: Request) {
       })
 
     if (profileError) {
-      console.error('Profile creation error:', profileError)
-      
-      // Cleanup: Delete the auth user if profile creation fails
+      // Cleanup: remove auth user if profile insert fails
       await serviceClient.auth.admin.deleteUser(authData.user.id)
-      
+
       return NextResponse.json(
         { error: 'Failed to create user profile' },
         { status: 500 }
@@ -74,17 +70,16 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({
-      message: 'User created successfully. Please check your email to verify your account.',
+      message:
+        'User created successfully. Please check your email to verify your account.',
       user: {
         id: authData.user.id,
         email: authData.user.email,
       },
     })
-
   } catch (error: any) {
-    console.error('Signup error:', error)
     return NextResponse.json(
-      { error: error.message || 'An error occurred during signup' },
+      { error: error.message || 'Signup failed' },
       { status: 500 }
     )
   }
