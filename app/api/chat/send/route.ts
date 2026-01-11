@@ -106,12 +106,17 @@ export async function POST(request: Request) {
           const title = content.slice(0, 50) + (content.length > 50 ? '...' : '')
           await supabase
             .from('chat_threads')
-            .update({ title, updated_at: new Date().toISOString() })
+            .update({ 
+              title, 
+              updated_at: new Date().toISOString() 
+            } as any) // Type assertion to fix build error
             .eq('id', threadId)
         } else {
           await supabase
             .from('chat_threads')
-            .update({ updated_at: new Date().toISOString() })
+            .update({ 
+              updated_at: new Date().toISOString() 
+            } as any) // Type assertion to fix build error
             .eq('id', threadId)
         }
 
