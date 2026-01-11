@@ -1,8 +1,18 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
-export async function createClient() {
-  const cookieStore = await cookies()
+type CookieToSet = {
+  name: string
+  value: string
+  options?: CookieOptions
+}
+
+/**
+ * User-scoped Supabase client (uses anon key + cookies)
+ * Used in Server Components, Route Handlers, Actions
+ */
+export function createClient() {
+  const cookieStore = cookies()
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,13 +22,14 @@ export async function createClient() {
         getAll() {
           return cookieStore.getAll()
         },
-        setAll(cookiesToSet: { name: string; value: string; options?: CookieOptions }[]) {
+        setAll(cookiesToSet: CookieToSet[]) {
           try {
-            cookiesToSet.forEach(({ name, value, options }) =>
+            cookiesToSet.forEach(({ name, value, options }) => {
               cookieStore.set(name, value, options)
-            )
+            })
           } catch {
-            // Server Component - ignore
+            // Server Components may throw when setting cookies
+            // This is safe to ignore
           }
         },
       },
@@ -26,7 +37,11 @@ export async function createClient() {
   )
 }
 
-export async function createServiceClient() {
+/**
+ * Service-role Supabase client (NO cookies)
+ * Server-only usage (admin tasks, cron, background jobs)
+ */
+export function createServiceClient() {
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -36,7 +51,7 @@ export async function createServiceClient() {
           return []
         },
         setAll() {
-          // Service client doesn't use cookies
+          // Service client does not use cookies
         },
       },
     }
