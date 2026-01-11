@@ -351,27 +351,6 @@ export default function HomePage() {
         </div>
       </footer>
 
-      {/* Custom Animations - Add this to globals.css */}
-      <style jsx global>{`
-        @keyframes shimmer {
-          0% { background-position: 200% center; }
-          100% { background-position: 0% center; }
-        }
-        
-        @keyframes gradient {
-          0%, 100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-        }
-        
-        .animate-shimmer {
-          animation: shimmer 3s linear infinite;
-        }
-        
-        .animate-gradient {
-          background-size: 200% 200%;
-          animation: gradient 5s ease infinite;
-        }
-      `}</style>
     </div>
   )
 }
