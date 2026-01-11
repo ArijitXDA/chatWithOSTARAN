@@ -8,11 +8,10 @@ type CookieToSet = {
 }
 
 /**
- * User-scoped Supabase client (uses anon key + cookies)
- * Used in Server Components, Route Handlers, Actions
+ * User-scoped Supabase client (anon key + cookies)
  */
-export function createClient() {
-  const cookieStore = cookies()
+export async function createClient() {
+  const cookieStore = await cookies()
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -29,7 +28,6 @@ export function createClient() {
             })
           } catch {
             // Server Components may throw when setting cookies
-            // This is safe to ignore
           }
         },
       },
@@ -38,8 +36,7 @@ export function createClient() {
 }
 
 /**
- * Service-role Supabase client (NO cookies)
- * Server-only usage (admin tasks, cron, background jobs)
+ * Service-role Supabase client (no cookies)
  */
 export function createServiceClient() {
   return createServerClient(
@@ -51,7 +48,7 @@ export function createServiceClient() {
           return []
         },
         setAll() {
-          // Service client does not use cookies
+          // no-op
         },
       },
     }
