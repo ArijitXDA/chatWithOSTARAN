@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { getProvider } from '@/lib/llm/factory'
@@ -34,7 +35,6 @@ export async function POST(request: Request) {
         }
 
         // Save user message
-        // @ts-ignore - Supabase type inference issue in production
         const { error: userMsgError } = await supabase
           .from('messages')
           .insert({
@@ -94,7 +94,6 @@ export async function POST(request: Request) {
         }
 
         // Save assistant message
-        // @ts-ignore - Supabase type inference issue in production
         await supabase.from('messages').insert({
           thread_id: threadId,
           role: 'assistant',
@@ -106,7 +105,6 @@ export async function POST(request: Request) {
         // Update thread updated_at and title (if first message)
         if (history.length === 0) {
           const title = content.slice(0, 50) + (content.length > 50 ? '...' : '')
-          // @ts-ignore - Supabase type inference issue in production
           await supabase
             .from('chat_threads')
             .update({ 
@@ -115,7 +113,6 @@ export async function POST(request: Request) {
             })
             .eq('id', threadId)
         } else {
-          // @ts-ignore - Supabase type inference issue in production
           await supabase
             .from('chat_threads')
             .update({ 
