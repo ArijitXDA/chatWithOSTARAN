@@ -9,7 +9,10 @@ export interface PersonaDefinition {
   color: string
 }
 
-export const PERSONAS: Record<PersonaType, PersonaDefinition> = {
+// Static personas (excludes 'custom' which is stored in database)
+type StaticPersonaType = Exclude<PersonaType, 'custom'>
+
+export const PERSONAS: Record<StaticPersonaType, PersonaDefinition> = {
   default: {
     id: 'default',
     name: 'Default',
@@ -133,7 +136,7 @@ export function getPersona(type: PersonaType): PersonaDefinition {
       systemPrompt: '', // Will be populated from database
     }
   }
-  return PERSONAS[type] || PERSONAS.default
+  return PERSONAS[type as StaticPersonaType] || PERSONAS.default
 }
 
 export function getAllPersonas(): PersonaDefinition[] {
