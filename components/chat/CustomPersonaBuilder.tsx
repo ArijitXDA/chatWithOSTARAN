@@ -34,9 +34,9 @@ export function CustomPersonaBuilder({ onSave, onCancel, initialData }: CustomPe
     verbosity_level: initialData?.verbosity_level || 'balanced',
 
     // Response style
-    use_emojis: initialData?.use_emojis || false,
-    use_markdown: initialData?.use_markdown || true,
-    use_code_blocks: initialData?.use_code_blocks || true,
+    use_emojis: initialData?.use_emojis ?? false,
+    use_markdown: initialData?.use_markdown ?? true,
+    use_code_blocks: initialData?.use_code_blocks ?? true,
     citation_style: initialData?.citation_style || 'none',
 
     // Knowledge settings
