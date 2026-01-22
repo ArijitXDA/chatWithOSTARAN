@@ -7,19 +7,25 @@ export interface AssemblePromptParams {
   persona: PersonaType
   conversationHistory: Message[]
   userPrompt: string
+  customSystemPrompt?: string // For custom personas
 }
 
 export function assemblePrompt(params: AssemblePromptParams): LLMMessage[] {
-  const { persona, conversationHistory, userPrompt } = params
-  
+  const { persona, conversationHistory, userPrompt, customSystemPrompt } = params
+
   const personaConfig = getPersona(persona)
 
   const messages: LLMMessage[] = []
 
-  messages.push({
-    role: 'system',
-    content: personaConfig.systemPrompt,
-  })
+  // Use custom system prompt if provided, otherwise use persona's default
+  const systemPrompt = customSystemPrompt || personaConfig.systemPrompt
+
+  if (systemPrompt) {
+    messages.push({
+      role: 'system',
+      content: systemPrompt,
+    })
+  }
 
   conversationHistory.forEach(msg => {
     if (msg.role === 'user' || msg.role === 'assistant') {

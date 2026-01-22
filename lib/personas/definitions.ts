@@ -9,7 +9,10 @@ export interface PersonaDefinition {
   color: string
 }
 
-export const PERSONAS: Record<PersonaType, PersonaDefinition> = {
+// Static personas (excludes 'custom' which is stored in database)
+type StaticPersonaType = Exclude<PersonaType, 'custom'>
+
+export const PERSONAS: Record<StaticPersonaType, PersonaDefinition> = {
   default: {
     id: 'default',
     name: 'Default',
@@ -121,7 +124,19 @@ Your responses should be thoughtful, balanced, and people-centric.`,
 }
 
 export function getPersona(type: PersonaType): PersonaDefinition {
-  return PERSONAS[type] || PERSONAS.default
+  if (type === 'custom') {
+    // Return a placeholder for custom personas
+    // The actual custom persona will be loaded from the database
+    return {
+      id: 'custom',
+      name: 'Custom',
+      icon: '🎭',
+      description: 'Your custom-built AI persona',
+      color: 'bg-indigo-100 text-indigo-700',
+      systemPrompt: '', // Will be populated from database
+    }
+  }
+  return PERSONAS[type as StaticPersonaType] || PERSONAS.default
 }
 
 export function getAllPersonas(): PersonaDefinition[] {

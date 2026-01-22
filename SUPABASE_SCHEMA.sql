@@ -32,7 +32,7 @@ CREATE TABLE chat_threads (
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   
   CONSTRAINT valid_model CHECK (model IN ('claude', 'openai', 'gemini', 'grok', 'ostaran-llm', 'ostaran-slm')),
-  CONSTRAINT valid_persona CHECK (persona IN ('default', 'researcher', 'professor', 'student', 'marketing_manager', 'hr_manager'))
+  CONSTRAINT valid_persona CHECK (persona IN ('default', 'researcher', 'professor', 'student', 'marketing_manager', 'hr_manager', 'custom'))
 );
 
 -- ============================================
@@ -60,12 +60,52 @@ CREATE TABLE conversation_summaries (
 );
 
 -- ============================================
+-- CUSTOM PERSONAS TABLE
+-- ============================================
+CREATE TABLE custom_personas (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  icon TEXT DEFAULT '🎭',
+  description TEXT,
+  system_prompt TEXT NOT NULL,
+
+  -- Advanced tuning parameters
+  temperature_default DECIMAL(2,1) DEFAULT 0.7 CHECK (temperature_default >= 0 AND temperature_default <= 2),
+  max_tokens INTEGER DEFAULT 4000,
+  top_p DECIMAL(3,2) DEFAULT 1.0 CHECK (top_p >= 0 AND top_p <= 1),
+  frequency_penalty DECIMAL(2,1) DEFAULT 0.0 CHECK (frequency_penalty >= -2 AND frequency_penalty <= 2),
+  presence_penalty DECIMAL(2,1) DEFAULT 0.0 CHECK (presence_penalty >= -2 AND presence_penalty <= 2),
+
+  -- Behavioral traits
+  creativity_level TEXT DEFAULT 'balanced' CHECK (creativity_level IN ('conservative', 'balanced', 'creative', 'experimental')),
+  formality_level TEXT DEFAULT 'balanced' CHECK (formality_level IN ('casual', 'balanced', 'formal', 'academic')),
+  verbosity_level TEXT DEFAULT 'balanced' CHECK (verbosity_level IN ('concise', 'balanced', 'detailed', 'comprehensive')),
+
+  -- Response style preferences
+  use_emojis BOOLEAN DEFAULT false,
+  use_markdown BOOLEAN DEFAULT true,
+  use_code_blocks BOOLEAN DEFAULT true,
+  citation_style TEXT CHECK (citation_style IN ('none', 'inline', 'footnotes', 'academic')),
+
+  -- Knowledge and expertise settings
+  expertise_domains TEXT[], -- Array of domain tags
+  language_style TEXT DEFAULT 'standard' CHECK (language_style IN ('standard', 'technical', 'simplified', 'storytelling')),
+  reasoning_style TEXT DEFAULT 'balanced' CHECK (reasoning_style IN ('intuitive', 'balanced', 'analytical', 'step_by_step')),
+
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================
 -- INDEXES FOR PERFORMANCE
 -- ============================================
 CREATE INDEX idx_profiles_email ON profiles(email);
 CREATE INDEX idx_threads_user_created ON chat_threads(user_id, created_at DESC);
 CREATE INDEX idx_threads_updated ON chat_threads(updated_at DESC);
 CREATE INDEX idx_messages_thread_created ON messages(thread_id, created_at ASC);
+CREATE INDEX idx_custom_personas_user ON custom_personas(user_id, is_active);
 
 -- ============================================
 -- ROW LEVEL SECURITY (RLS)
@@ -74,6 +114,7 @@ ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chat_threads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE conversation_summaries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE custom_personas ENABLE ROW LEVEL SECURITY;
 
 -- ============================================
 -- RLS POLICIES - Profiles
@@ -150,6 +191,26 @@ CREATE POLICY "Users can insert summaries in own threads"
   );
 
 -- ============================================
+-- RLS POLICIES - Custom Personas
+-- ============================================
+CREATE POLICY "Users can view own custom personas"
+  ON custom_personas FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can create own custom personas"
+  ON custom_personas FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own custom personas"
+  ON custom_personas FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own custom personas"
+  ON custom_personas FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- ============================================
 -- FUNCTIONS & TRIGGERS
 -- ============================================
 
@@ -174,13 +235,19 @@ CREATE TRIGGER update_threads_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+-- Apply trigger to custom_personas
+CREATE TRIGGER update_custom_personas_updated_at
+  BEFORE UPDATE ON custom_personas
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
 -- ============================================
 -- DEMO: Success Message
 -- ============================================
 DO $$
 BEGIN
   RAISE NOTICE '✅ Database schema created successfully!';
-  RAISE NOTICE '📊 Tables: profiles, chat_threads, messages, conversation_summaries';
+  RAISE NOTICE '📊 Tables: profiles, chat_threads, messages, conversation_summaries, custom_personas';
   RAISE NOTICE '🔒 Row Level Security enabled on all tables';
-  RAISE NOTICE '🎯 Ready for authentication and chat functionality';
+  RAISE NOTICE '🎯 Ready for authentication, chat, and custom persona functionality';
 END $$;

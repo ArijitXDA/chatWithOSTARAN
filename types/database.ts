@@ -41,6 +41,42 @@ export interface ConversationSummary {
   created_at: string
 }
 
+export interface CustomPersona {
+  id: string
+  user_id: string
+  name: string
+  icon: string
+  description?: string
+  system_prompt: string
+
+  // Advanced tuning parameters
+  temperature_default: number
+  max_tokens: number
+  top_p: number
+  frequency_penalty: number
+  presence_penalty: number
+
+  // Behavioral traits
+  creativity_level: 'conservative' | 'balanced' | 'creative' | 'experimental'
+  formality_level: 'casual' | 'balanced' | 'formal' | 'academic'
+  verbosity_level: 'concise' | 'balanced' | 'detailed' | 'comprehensive'
+
+  // Response style preferences
+  use_emojis: boolean
+  use_markdown: boolean
+  use_code_blocks: boolean
+  citation_style: 'none' | 'inline' | 'footnotes' | 'academic' | null
+
+  // Knowledge and expertise settings
+  expertise_domains: string[] | null
+  language_style: 'standard' | 'technical' | 'simplified' | 'storytelling'
+  reasoning_style: 'intuitive' | 'balanced' | 'analytical' | 'step_by_step'
+
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
 export type ModelType = 
   | 'claude' 
   | 'openai' 
@@ -49,13 +85,14 @@ export type ModelType =
   | 'ostaran-llm' 
   | 'ostaran-slm'
 
-export type PersonaType = 
+export type PersonaType =
   | 'default'
   | 'researcher'
   | 'professor'
   | 'student'
   | 'marketing_manager'
   | 'hr_manager'
+  | 'custom'
 
 // Supabase Database type
 export interface Database {
@@ -80,6 +117,11 @@ export interface Database {
         Row: ConversationSummary
         Insert: Omit<ConversationSummary, 'id' | 'created_at'>
         Update: Partial<Omit<ConversationSummary, 'id' | 'created_at'>>
+      }
+      custom_personas: {
+        Row: CustomPersona
+        Insert: Omit<CustomPersona, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<CustomPersona, 'id' | 'user_id' | 'created_at' | 'updated_at'>>
       }
     }
   }
