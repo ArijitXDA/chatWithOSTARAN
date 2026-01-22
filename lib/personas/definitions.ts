@@ -139,31 +139,3 @@ export function getPersona(type: PersonaType): PersonaDefinition {
 export function getAllPersonas(): PersonaDefinition[] {
   return Object.values(PERSONAS)
 }
-
-// Helper to get custom persona system prompt from database
-export async function getCustomPersonaPrompt(userId: string): Promise<string | null> {
-  try {
-    // This will be called from server-side only
-    const { createClient } = await import('@/lib/supabase/server')
-    const supabase = await createClient()
-
-    const { data: persona, error } = await supabase
-      .from('custom_personas')
-      .select('system_prompt, temperature_default, max_tokens, top_p, frequency_penalty, presence_penalty')
-      .eq('user_id', userId)
-      .eq('is_active', true)
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .single()
-
-    if (error || !persona) {
-      console.error('Error fetching custom persona:', error)
-      return null
-    }
-
-    return persona.system_prompt
-  } catch (error) {
-    console.error('Failed to load custom persona:', error)
-    return null
-  }
-}
