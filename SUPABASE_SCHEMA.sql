@@ -28,9 +28,10 @@ CREATE TABLE chat_threads (
   model TEXT NOT NULL DEFAULT 'claude',
   persona TEXT NOT NULL DEFAULT 'default',
   temperature DECIMAL(2,1) DEFAULT 0.7 CHECK (temperature >= 0 AND temperature <= 2),
+  is_favorite BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  
+
   CONSTRAINT valid_model CHECK (model IN ('claude', 'openai', 'gemini', 'grok', 'ostaran-llm', 'ostaran-slm')),
   CONSTRAINT valid_persona CHECK (persona IN ('default', 'researcher', 'professor', 'student', 'marketing_manager', 'hr_manager', 'custom'))
 );
@@ -103,7 +104,7 @@ CREATE TABLE custom_personas (
 -- ============================================
 CREATE INDEX idx_profiles_email ON profiles(email);
 CREATE INDEX idx_threads_user_created ON chat_threads(user_id, created_at DESC);
-CREATE INDEX idx_threads_updated ON chat_threads(updated_at DESC);
+CREATE INDEX idx_threads_user_favorite_updated ON chat_threads(user_id, is_favorite DESC, updated_at DESC);
 CREATE INDEX idx_messages_thread_created ON messages(thread_id, created_at ASC);
 CREATE INDEX idx_custom_personas_user ON custom_personas(user_id, is_active);
 
