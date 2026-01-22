@@ -4,10 +4,11 @@ import { NextResponse } from 'next/server'
 // GET - Fetch a specific custom persona
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient()
+    const { id } = await params
 
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
@@ -17,7 +18,7 @@ export async function GET(
     const { data: persona, error } = await supabase
       .from('custom_personas')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', user.id)
       .single()
 
@@ -36,10 +37,11 @@ export async function GET(
 // PUT - Update a custom persona
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient()
+    const { id } = await params
 
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
@@ -51,7 +53,7 @@ export async function PUT(
     const { data: persona, error } = await supabase
       .from('custom_personas')
       .update(updateData)
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', user.id)
       .select()
       .single()
@@ -71,10 +73,11 @@ export async function PUT(
 // DELETE - Delete a custom persona
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient()
+    const { id } = await params
 
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
@@ -85,7 +88,7 @@ export async function DELETE(
     const { error } = await supabase
       .from('custom_personas')
       .update({ is_active: false })
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', user.id)
 
     if (error) {
