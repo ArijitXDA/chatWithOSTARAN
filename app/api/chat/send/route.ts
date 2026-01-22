@@ -57,38 +57,79 @@ export async function POST(request: Request) {
 
         const history = messages || []
 
+        // Load custom persona settings if needed
+        let customSystemPrompt: string | undefined
+        let effectiveTemperature = config.temperature
+        let customPersonaSettings: any = null
+
+        if (config.persona === 'custom') {
+          const { data: customPersona, error: personaError } = await supabase
+            .from('custom_personas')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('is_active', true)
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .single()
+
+          if (customPersona && !personaError) {
+            customSystemPrompt = customPersona.system_prompt
+            customPersonaSettings = customPersona
+            // Use custom persona's default temperature if not explicitly overridden
+            // The temperature slider still works and overrides the default
+            effectiveTemperature = config.temperature ?? customPersona.temperature_default
+          }
+        }
+
         // Assemble prompt
         const llmMessages = assemblePrompt({
           persona: config.persona,
           conversationHistory: history,
           userPrompt: content,
+          customSystemPrompt,
         })
 
         // Get LLM provider
         const provider = getProvider(config.model)
 
+        // Prepare LLM options with custom persona settings if available
+        const llmOptions: any = {
+          messages: llmMessages,
+          temperature: effectiveTemperature,
+        }
+
+        // Apply advanced tuning parameters from custom persona if available
+        if (customPersonaSettings) {
+          if (customPersonaSettings.max_tokens) {
+            llmOptions.max_tokens = customPersonaSettings.max_tokens
+          }
+          if (customPersonaSettings.top_p !== null && customPersonaSettings.top_p !== undefined) {
+            llmOptions.top_p = customPersonaSettings.top_p
+          }
+          if (customPersonaSettings.frequency_penalty !== null && customPersonaSettings.frequency_penalty !== undefined) {
+            llmOptions.frequency_penalty = customPersonaSettings.frequency_penalty
+          }
+          if (customPersonaSettings.presence_penalty !== null && customPersonaSettings.presence_penalty !== undefined) {
+            llmOptions.presence_penalty = customPersonaSettings.presence_penalty
+          }
+        }
+
         // Stream response
         let fullResponse = ''
 
         if (provider.streamChat) {
-          for await (const chunk of provider.streamChat({
-            messages: llmMessages,
-            temperature: config.temperature,
-          })) {
+          for await (const chunk of provider.streamChat(llmOptions)) {
             fullResponse += chunk
-            
+
             // Send chunk to client
             const data = JSON.stringify({ delta: chunk })
             controller.enqueue(encoder.encode(`data: ${data}\n\n`))
           }
         } else {
           // Fallback to non-streaming
-          const response = await provider.chat({
-            messages: llmMessages,
-            temperature: config.temperature,
-          })
+          const response = await provider.chat(llmOptions)
           fullResponse = response.content
-          
+
           const data = JSON.stringify({ delta: response.content })
           controller.enqueue(encoder.encode(`data: ${data}\n\n`))
         }
