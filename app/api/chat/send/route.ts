@@ -145,19 +145,24 @@ export async function POST(request: Request) {
 
         // Update thread updated_at and title (if first message)
         if (history.length === 0) {
-          const title = content.slice(0, 50) + (content.length > 50 ? '...' : '')
+          // Generate meaningful title from first message
+          const cleanContent = content.replace(/\n/g, ' ').trim()
+          const title = cleanContent.length > 60
+            ? cleanContent.slice(0, 60) + '...'
+            : cleanContent || 'New Conversation'
+
           await supabase
             .from('chat_threads')
-            .update({ 
-              title, 
-              updated_at: new Date().toISOString() 
+            .update({
+              title,
+              updated_at: new Date().toISOString()
             })
             .eq('id', threadId)
         } else {
           await supabase
             .from('chat_threads')
-            .update({ 
-              updated_at: new Date().toISOString() 
+            .update({
+              updated_at: new Date().toISOString()
             })
             .eq('id', threadId)
         }

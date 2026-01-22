@@ -19,6 +19,7 @@ export interface ChatThread {
   model: ModelType
   persona: PersonaType
   temperature: number
+  is_favorite: boolean
   created_at: string
   updated_at: string
 }
