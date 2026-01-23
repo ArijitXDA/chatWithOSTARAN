@@ -238,9 +238,18 @@ export function ChatInterface({ userName, onSignOut }: ChatInterfaceProps) {
               Hey {userName}, what's up today?
             </h1>
           </div>
-          <Button onClick={onSignOut} variant="danger" size="sm">
-            Sign Out
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => router.push('/groups')}
+              variant="secondary"
+              size="sm"
+            >
+              👥 Group Chats
+            </Button>
+            <Button onClick={onSignOut} variant="danger" size="sm">
+              Sign Out
+            </Button>
+          </div>
         </div>
 
         {/* Settings Bar */}
