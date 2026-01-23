@@ -31,6 +31,7 @@ export function ChatInterface({ userName, onSignOut }: ChatInterfaceProps) {
     model: 'claude' as ModelType,
     persona: 'default' as PersonaType,
     temperature: 0.7,
+    customPersonaId: null,
   })
 
   // Load messages when thread changes
@@ -251,7 +252,10 @@ export function ChatInterface({ userName, onSignOut }: ChatInterfaceProps) {
             />
             <PersonaSelector
               value={config.persona}
-              onChange={(persona) => setConfig({ ...config, persona })}
+              customPersonaId={config.customPersonaId}
+              onChange={(persona, customPersonaId) =>
+                setConfig({ ...config, persona, customPersonaId: customPersonaId ?? null })
+              }
             />
             <TemperatureControl
               value={config.temperature}

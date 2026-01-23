@@ -99,6 +99,10 @@ CREATE TABLE custom_personas (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Add custom_persona_id to chat_threads (now that custom_personas table exists)
+ALTER TABLE chat_threads
+ADD COLUMN custom_persona_id UUID REFERENCES custom_personas(id) ON DELETE SET NULL;
+
 -- ============================================
 -- INDEXES FOR PERFORMANCE
 -- ============================================
