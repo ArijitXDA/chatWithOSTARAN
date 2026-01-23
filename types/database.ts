@@ -96,6 +96,47 @@ export type PersonaType =
   | 'hr_manager'
   | 'custom'
 
+export interface Group {
+  id: string
+  name: string
+  description?: string
+  creator_id: string
+  invite_code: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface GroupMember {
+  id: string
+  group_id: string
+  user_id: string
+  role: 'creator' | 'admin' | 'member'
+  joined_at: string
+}
+
+export interface GroupMessage {
+  id: string
+  group_id: string
+  user_id: string | null
+  sender_name: string
+  sender_type: 'user' | 'ai'
+  content: string
+  mentioned_ostaran: boolean
+  ai_should_respond: boolean
+  created_at: string
+}
+
+export interface GroupConversationContext {
+  id: string
+  group_id: string
+  detected_tone: 'professional' | 'friendly' | 'casual' | 'technical' | 'academic'
+  detected_topics: string[] | null
+  last_ai_message_at: string | null
+  message_count: number
+  updated_at: string
+}
+
 // Supabase Database type
 export interface Database {
   public: {
