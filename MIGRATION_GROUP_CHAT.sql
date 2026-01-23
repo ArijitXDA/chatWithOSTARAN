@@ -3,6 +3,9 @@
 -- Enables collaborative conversations with oStaran AI agent
 -- ============================================
 
+-- Enable required extensions
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
 -- Groups table
 CREATE TABLE IF NOT EXISTS groups (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
