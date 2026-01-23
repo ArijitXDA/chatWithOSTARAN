@@ -174,7 +174,10 @@ CREATE TRIGGER update_group_context_updated_at
 
 -- Function to add creator as first member when group is created
 CREATE OR REPLACE FUNCTION add_creator_as_member()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+SECURITY DEFINER  -- Bypass RLS for automatic operations
+SET search_path = public
+AS $$
 BEGIN
   INSERT INTO group_members (group_id, user_id, role)
   VALUES (NEW.id, NEW.creator_id, 'creator');
