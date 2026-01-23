@@ -62,14 +62,13 @@ export async function POST(request: Request) {
         let effectiveTemperature = config.temperature
         let customPersonaSettings: any = null
 
-        if (config.persona === 'custom') {
+        if (config.persona === 'custom' && thread.custom_persona_id) {
           const { data: customPersona, error: personaError } = await supabase
             .from('custom_personas')
             .select('*')
+            .eq('id', thread.custom_persona_id)
             .eq('user_id', user.id)
             .eq('is_active', true)
-            .order('updated_at', { ascending: false })
-            .limit(1)
             .single()
 
           if (customPersona && !personaError) {

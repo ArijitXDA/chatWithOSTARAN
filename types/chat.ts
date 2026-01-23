@@ -12,6 +12,7 @@ export interface ChatConfig {
   model: ModelType
   persona: PersonaType
   temperature: number
+  customPersonaId?: string | null
 }
 
 export interface SendMessageParams {

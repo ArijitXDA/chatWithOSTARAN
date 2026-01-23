@@ -34,6 +34,7 @@ export function useThreads() {
     model: string
     persona: string
     temperature: number
+    customPersonaId?: string | null
   }) {
     try {
       const response = await fetch('/api/threads/create', {

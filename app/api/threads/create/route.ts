@@ -11,7 +11,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { model, persona, temperature } = await request.json()
+    const { model, persona, temperature, customPersonaId } = await request.json()
 
     const { data: thread, error } = await supabase
       .from('chat_threads')
@@ -19,6 +19,7 @@ export async function POST(request: Request) {
         user_id: user.id,
         model,
         persona,
+        custom_persona_id: customPersonaId || null,
         temperature,
         title: 'New Chat',
       })
