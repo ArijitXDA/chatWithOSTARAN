@@ -1,11 +1,11 @@
 "use client"
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import toast from 'react-hot-toast'
 
-export default function JoinGroupPage() {
+function JoinGroupContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const inviteCode = searchParams.get('code')
@@ -120,5 +120,20 @@ export default function JoinGroupPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+export default function JoinGroupPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="text-6xl mb-4">⏳</div>
+          <p className="text-gray-600">Loading invite...</p>
+        </div>
+      </div>
+    }>
+      <JoinGroupContent />
+    </Suspense>
   )
 }
