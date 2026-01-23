@@ -140,11 +140,11 @@ function extractTopics(message: string): string[] {
  * Generates the system prompt for oStaran in group chat context
  */
 export function generateGroupChatSystemPrompt(
-  tone: string,
+  tone: 'professional' | 'friendly' | 'casual' | 'technical' | 'academic',
   topics: string[],
   memberNames: string[]
 ): string {
-  const toneInstructions = {
+  const toneInstructions: Record<string, string> = {
     professional: 'Maintain a professional, courteous tone. Be concise and precise.',
     friendly: 'Be warm and approachable while remaining helpful and informative.',
     casual: 'Keep it light and conversational. Be friendly and relatable.',
