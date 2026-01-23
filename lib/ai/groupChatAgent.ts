@@ -105,7 +105,7 @@ function detectTone(
   if (professionalCount >= 2) return 'professional'
 
   // Casual indicators (emojis, slang, short messages)
-  const casualIndicators = /[😀-🙏]|lol|haha|yeah|nope|cool|awesome/i
+  const casualIndicators = /lol|haha|yeah|nope|cool|awesome|😀|😁|😂|🤣|😊|👍|👋|🎉|💯|🔥/i
   if (casualIndicators.test(allText)) return 'casual'
 
   // Default to friendly
