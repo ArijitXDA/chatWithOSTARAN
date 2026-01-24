@@ -221,8 +221,8 @@ async function generateAIResponse(
     content: userMessage,
   })
 
-  // Get AI provider (default to Claude)
-  const provider = getProvider('claude')
+  // Get AI provider (use GPT-4 for group chat)
+  const provider = getProvider('gpt4')
 
   // Generate response with strict 10-word limit
   const response = await provider.chat({
