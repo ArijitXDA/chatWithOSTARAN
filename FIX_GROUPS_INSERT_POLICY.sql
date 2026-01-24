@@ -17,7 +17,7 @@ CREATE POLICY "Authenticated users can create groups"
   WITH CHECK (true);
 
 -- Verify the policy was created
-SELECT policyname, cmd, roles, permissive,
+SELECT polname as policyname, polcmd as cmd, polroles as roles, polpermissive as permissive,
        pg_get_expr(polwithcheck, polrelid) as with_check
 FROM pg_policy
 JOIN pg_class ON pg_policy.polrelid = pg_class.oid
