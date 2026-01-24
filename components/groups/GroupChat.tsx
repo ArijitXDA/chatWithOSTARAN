@@ -53,6 +53,7 @@ export function GroupChat({ groupId, groupName, onShowMembers, onShowInvite }: G
     if (!newMessage.trim() || sending) return
 
     setSending(true)
+    console.log('[GroupChat] Sending message:', newMessage.trim())
 
     try {
       const response = await fetch(`/api/groups/${groupId}/messages`, {
@@ -61,21 +62,31 @@ export function GroupChat({ groupId, groupName, onShowMembers, onShowInvite }: G
         body: JSON.stringify({ content: newMessage.trim() }),
       })
 
+      console.log('[GroupChat] Response status:', response.status)
+
       if (!response.ok) throw new Error('Failed to send message')
 
-      const { userMessage, aiMessage, aiResponded } = await response.json()
+      const result = await response.json()
+      console.log('[GroupChat] Response data:', result)
+
+      const { userMessage, aiMessage, aiResponded, reason } = result
+
+      console.log('[GroupChat] AI Decision:', { aiResponded, reason })
 
       // Add user message
       setMessages((prev) => [...prev, userMessage])
 
       // Add AI message if responded
       if (aiResponded && aiMessage) {
+        console.log('[GroupChat] Adding AI message:', aiMessage)
         setMessages((prev) => [...prev, aiMessage])
+      } else {
+        console.log('[GroupChat] AI did not respond. Reason:', reason)
       }
 
       setNewMessage('')
     } catch (error) {
-      console.error('Failed to send message:', error)
+      console.error('[GroupChat] Error:', error)
       toast.error('Failed to send message')
     } finally {
       setSending(false)
