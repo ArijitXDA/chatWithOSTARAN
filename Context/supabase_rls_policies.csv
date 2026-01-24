@@ -1,0 +1,36 @@
+schemaname,tablename,policyname,operation,roles,using_expression,with_check
+public,chat_threads,Users can create own threads,INSERT,{public},null,(auth.uid() = user_id)
+public,chat_threads,Users can delete own threads,DELETE,{public},(auth.uid() = user_id),null
+public,chat_threads,Users can update own threads,UPDATE,{public},(auth.uid() = user_id),(auth.uid() = user_id)
+public,chat_threads,Users can view own threads,SELECT,{public},(auth.uid() = user_id),null
+public,conversation_summaries,Users can insert summaries in own threads,INSERT,{public},null,"(thread_id IN ( SELECT chat_threads.id
+   FROM chat_threads
+  WHERE (chat_threads.user_id = auth.uid())))"
+public,conversation_summaries,Users can view own thread summaries,SELECT,{public},"(thread_id IN ( SELECT chat_threads.id
+   FROM chat_threads
+  WHERE (chat_threads.user_id = auth.uid())))",null
+public,custom_personas,Users can create own custom personas,INSERT,{public},null,(auth.uid() = user_id)
+public,custom_personas,Users can delete own custom personas,DELETE,{public},(auth.uid() = user_id),null
+public,custom_personas,Users can update own custom personas,UPDATE,{public},(auth.uid() = user_id),(auth.uid() = user_id)
+public,custom_personas,Users can view own custom personas,SELECT,{public},(auth.uid() = user_id),null
+public,group_conversation_context,System can manage conversation context,ALL,{public},true,true
+public,group_conversation_context,Users can view context of their groups,SELECT,{public},"is_group_member(group_id, auth.uid())",null
+public,group_members,Creators and admins can remove members,DELETE,{public},"has_group_role(group_id, auth.uid(), ARRAY['creator'::text, 'admin'::text])",null
+public,group_members,Users can join groups,INSERT,{public},null,(user_id = auth.uid())
+public,group_members,Users can view members in their groups,SELECT,{public},"is_group_member(group_id, auth.uid())",null
+public,group_members,Users can view their own memberships,SELECT,{public},(user_id = auth.uid()),null
+public,group_messages,Users can send messages to their groups,INSERT,{public},null,"(is_group_member(group_id, auth.uid()) AND (((sender_type = 'user'::text) AND (user_id = auth.uid())) OR (sender_type = 'ai'::text)))"
+public,group_messages,Users can view messages in their groups,SELECT,{public},"is_group_member(group_id, auth.uid())",null
+public,groups,Authenticated users can create groups,INSERT,{authenticated},null,true
+public,groups,Creators and admins can update groups,UPDATE,{public},"has_group_role(id, auth.uid(), ARRAY['creator'::text, 'admin'::text])",null
+public,groups,Creators can delete groups,DELETE,{public},(auth.uid() = creator_id),null
+public,groups,Users can view their groups,SELECT,{public},"is_group_member(id, auth.uid())",null
+public,messages,Users can insert messages in own threads,INSERT,{public},null,"(thread_id IN ( SELECT chat_threads.id
+   FROM chat_threads
+  WHERE (chat_threads.user_id = auth.uid())))"
+public,messages,Users can view own thread messages,SELECT,{public},"(thread_id IN ( SELECT chat_threads.id
+   FROM chat_threads
+  WHERE (chat_threads.user_id = auth.uid())))",null
+public,profiles,Users can insert own profile,INSERT,{public},null,(auth.uid() = id)
+public,profiles,Users can update own profile,UPDATE,{public},(auth.uid() = id),(auth.uid() = id)
+public,profiles,Users can view own profile,SELECT,{public},(auth.uid() = id),null
