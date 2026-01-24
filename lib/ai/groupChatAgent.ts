@@ -70,6 +70,12 @@ export function analyzeConversationForIntervention(
     decision.reason = 'Technical discussion detected'
   }
 
+  // Respond to first message in new groups to welcome users
+  if (recentMessages.length === 0) {
+    decision.shouldRespond = true
+    decision.reason = 'First message - welcoming'
+  }
+
   // Detect tone from conversation
   decision.detectedTone = detectTone(recentMessages, newMessage)
   decision.detectedTopics = extractTopics(newMessage)
