@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
@@ -17,8 +17,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Group name is required' }, { status: 400 })
     }
 
+    // Use service role client to bypass RLS (we've already validated auth above)
+    const serviceClient = createServiceClient()
+
     // Create group (trigger will automatically add creator as member)
-    const { data: group, error } = await supabase
+    const { data: group, error } = await serviceClient
       .from('groups')
       .insert({
         name: name.trim(),
