@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { getProvider } from '@/lib/llm/factory'
 import {
@@ -148,8 +148,11 @@ export async function POST(
     let aiMessage = null
     if (decision.shouldRespond) {
       try {
+        // Use service client for AI message to bypass RLS
+        const serviceClient = createServiceClient()
         aiMessage = await generateAIResponse(
           supabase,
+          serviceClient,
           groupId,
           content,
           recentMessages || [],
@@ -177,13 +180,14 @@ export async function POST(
 // Helper function to generate AI response
 async function generateAIResponse(
   supabase: any,
+  serviceClient: any,
   groupId: string,
   userMessage: string,
   recentMessages: any[],
   tone: string,
   topics: string[]
 ) {
-  // Get group members
+  // Get group members (use regular client for reading)
   const { data: members } = await supabase
     .from('group_members')
     .select('user_id')
@@ -238,8 +242,8 @@ async function generateAIResponse(
     aiContent = words.slice(0, 10).join(' ') + '...'
   }
 
-  // Save AI message
-  const { data: aiMessage } = await supabase
+  // Save AI message (use service client to bypass RLS)
+  const { data: aiMessage, error: aiInsertError } = await serviceClient
     .from('group_messages')
     .insert({
       group_id: groupId,
@@ -253,8 +257,13 @@ async function generateAIResponse(
     .select()
     .single()
 
-  // Update last AI message timestamp
-  await supabase
+  if (aiInsertError) {
+    console.error('Error inserting AI message:', aiInsertError)
+    throw new Error(`Failed to save AI message: ${aiInsertError.message}`)
+  }
+
+  // Update last AI message timestamp (use service client)
+  await serviceClient
     .from('group_conversation_context')
     .update({
       last_ai_message_at: new Date().toISOString(),
