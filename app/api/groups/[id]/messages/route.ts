@@ -147,6 +147,12 @@ export async function POST(
     // If AI should respond, generate response
     let aiMessage = null
     if (decision.shouldRespond) {
+      console.log('[Group Chat AI] Decision to respond:', {
+        shouldRespond: decision.shouldRespond,
+        reason: decision.reason,
+        tone: decision.detectedTone,
+        topics: decision.detectedTopics
+      })
       try {
         // Use service client for AI message to bypass RLS
         const serviceClient = createServiceClient()
@@ -159,10 +165,18 @@ export async function POST(
           decision.detectedTone,
           decision.detectedTopics
         )
+        console.log('[Group Chat AI] AI message created:', {
+          id: aiMessage?.id,
+          sender_name: aiMessage?.sender_name,
+          sender_type: aiMessage?.sender_type,
+          content_preview: aiMessage?.content?.substring(0, 50)
+        })
       } catch (aiError) {
-        console.error('AI response generation error:', aiError)
+        console.error('[Group Chat AI] Error generating response:', aiError)
         // Don't fail the request if AI fails - user message was saved
       }
+    } else {
+      console.log('[Group Chat AI] Not responding. Reason:', decision.reason)
     }
 
     return NextResponse.json({
