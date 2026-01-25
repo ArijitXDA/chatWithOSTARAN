@@ -33,9 +33,11 @@ function JoinGroupContent() {
       })
 
       if (response.status === 401) {
-        // User not logged in - redirect to signup with return URL
+        // User not logged in - redirect to login with return URL
+        // User can click "Sign up" from login page if they don't have an account
         const returnUrl = `/groups/join?code=${inviteCode}`
-        router.push(`/auth/signup?returnUrl=${encodeURIComponent(returnUrl)}`)
+        toast('Please log in to join the group')
+        router.push(`/auth/login?returnUrl=${encodeURIComponent(returnUrl)}`)
         return
       }
 

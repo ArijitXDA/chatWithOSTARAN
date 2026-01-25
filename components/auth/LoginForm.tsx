@@ -2,13 +2,15 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
 
 export default function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const returnUrl = searchParams.get('returnUrl')
   const supabase = createClient()
-  
+
   const [loading, setLoading] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -38,11 +40,13 @@ export default function LoginForm() {
       console.log('Session:', data.session ? 'Active' : 'None')
 
       toast.success('Login successful!')
-      
+
       // Small delay to ensure session is set
       await new Promise(resolve => setTimeout(resolve, 500))
-      
-      router.push('/chat')
+
+      // Redirect to returnUrl if provided, otherwise to chat
+      const redirectUrl = returnUrl || '/chat'
+      router.push(redirectUrl)
       router.refresh()
       
     } catch (error: any) {
@@ -140,7 +144,10 @@ export default function LoginForm() {
 
         <p className="text-center text-sm text-gray-600 mt-6">
           Don't have an account?{' '}
-          <a href="/auth/signup" className="text-blue-600 hover:underline font-medium">
+          <a
+            href={returnUrl ? `/auth/signup?returnUrl=${encodeURIComponent(returnUrl)}` : '/auth/signup'}
+            className="text-blue-600 hover:underline font-medium"
+          >
             Sign up
           </a>
         </p>

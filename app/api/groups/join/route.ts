@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
@@ -17,8 +17,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invite code is required' }, { status: 400 })
     }
 
-    // Find group by invite code
-    const { data: group, error: groupError } = await supabase
+    // Use service client to bypass RLS for invite code lookup
+    // The invite code itself is the secret that grants access
+    const serviceClient = createServiceClient()
+
+    // Find group by invite code (using service client to bypass RLS)
+    const { data: group, error: groupError } = await serviceClient
       .from('groups')
       .select('*')
       .eq('invite_code', inviteCode)
@@ -26,11 +30,12 @@ export async function POST(request: Request) {
       .single()
 
     if (groupError || !group) {
+      console.error('Group lookup error:', groupError)
       return NextResponse.json({ error: 'Invalid invite code' }, { status: 404 })
     }
 
-    // Check if user is already a member
-    const { data: existingMember } = await supabase
+    // Check if user is already a member (using service client)
+    const { data: existingMember } = await serviceClient
       .from('group_members')
       .select('id')
       .eq('group_id', group.id)
@@ -41,8 +46,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ group, alreadyMember: true })
     }
 
-    // Add user as member
-    const { error: memberError } = await supabase
+    // Add user as member (using service client to bypass RLS)
+    const { error: memberError } = await serviceClient
       .from('group_members')
       .insert({
         group_id: group.id,
@@ -52,7 +57,10 @@ export async function POST(request: Request) {
 
     if (memberError) {
       console.error('Error adding member:', memberError)
-      return NextResponse.json({ error: 'Failed to join group' }, { status: 500 })
+      return NextResponse.json({
+        error: 'Failed to join group',
+        details: memberError.message
+      }, { status: 500 })
     }
 
     return NextResponse.json({ group, alreadyMember: false })
