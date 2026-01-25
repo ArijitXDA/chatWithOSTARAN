@@ -65,19 +65,30 @@ export function GroupSettingsModal({
     setSaving(true)
 
     try {
+      console.log('[GroupSettings] Saving with persona ID:', selectedPersonaId)
+
       const response = await fetch(`/api/groups/${groupId}/settings`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ group_persona_id: selectedPersonaId }),
       })
 
-      if (!response.ok) throw new Error('Failed to update settings')
+      console.log('[GroupSettings] Response status:', response.status)
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('[GroupSettings] Error response:', errorData)
+        throw new Error(errorData.error || 'Failed to update settings')
+      }
+
+      const result = await response.json()
+      console.log('[GroupSettings] Success:', result)
 
       toast.success('Group settings updated')
       onClose()
-    } catch (error) {
-      console.error('Failed to save settings:', error)
-      toast.error('Failed to save settings')
+    } catch (error: any) {
+      console.error('[GroupSettings] Failed to save settings:', error)
+      toast.error(error.message || 'Failed to save settings')
     } finally {
       setSaving(false)
     }
