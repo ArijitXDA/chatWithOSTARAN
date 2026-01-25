@@ -59,6 +59,7 @@ export async function searchWeb(query: string, maxResults: number = 5): Promise<
  */
 export function formatSearchResultsForLLM(results: TavilyResponse): string {
   let formatted = `**Web Search Results for: "${results.query}"**\n\n`
+  formatted += `*Use the following current, real-time information from the web to answer the user's question accurately.*\n\n`
 
   if (results.answer) {
     formatted += `**Quick Answer:** ${results.answer}\n\n`
@@ -67,9 +68,15 @@ export function formatSearchResultsForLLM(results: TavilyResponse): string {
   formatted += `**Sources:**\n\n`
   results.results.forEach((result, index) => {
     formatted += `${index + 1}. **${result.title}**\n`
-    formatted += `   ${result.content.substring(0, 200)}...\n`
-    formatted += `   Source: ${result.url}\n\n`
+    formatted += `   ${result.content.substring(0, 300)}...\n`
+    formatted += `   Source: ${result.url}\n`
+    if (result.published_date) {
+      formatted += `   Published: ${result.published_date}\n`
+    }
+    formatted += `\n`
   })
+
+  formatted += `\n**Instructions:** Based on the above search results, provide a comprehensive answer to the user's question. Cite specific sources when possible.`
 
   return formatted
 }
