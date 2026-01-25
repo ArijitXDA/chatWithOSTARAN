@@ -29,54 +29,18 @@ export function analyzeConversationForIntervention(
     detectedTopics: [],
   }
 
-  // Always respond if explicitly mentioned
+  // ONLY respond if explicitly mentioned
   if (mentionedOStaran) {
     decision.shouldRespond = true
-    decision.reason = 'Explicitly mentioned'
+    decision.reason = 'Explicitly mentioned by name'
     decision.detectedTone = detectTone(recentMessages, newMessage)
     decision.detectedTopics = extractTopics(newMessage)
     return decision
   }
 
-  const lowerMessage = newMessage.toLowerCase()
-
-  // Check for questions or help requests
-  const questionPatterns = [
-    /\?$/,
-    /^(what|how|why|when|where|who|can|could|would|should|is|are|do|does)/i,
-    /(help|suggest|recommend|advice|opinion|think|explain|clarify)/i,
-  ]
-
-  const hasQuestion = questionPatterns.some(pattern => pattern.test(newMessage))
-
-  if (hasQuestion) {
-    decision.shouldRespond = true
-    decision.reason = 'Question detected'
-  }
-
-  // Check for technical/specialized topics that warrant AI input
-  const technicalKeywords = [
-    'code', 'programming', 'bug', 'error', 'algorithm', 'database',
-    'api', 'function', 'data', 'analysis', 'research', 'study',
-    'calculate', 'solution', 'problem', 'issue', 'optimize'
-  ]
-
-  const hasTechnicalContent = technicalKeywords.some(keyword =>
-    lowerMessage.includes(keyword)
-  )
-
-  if (hasTechnicalContent && recentMessages.length >= 3) {
-    decision.shouldRespond = true
-    decision.reason = 'Technical discussion detected'
-  }
-
-  // Respond to first message in new groups to welcome users
-  if (recentMessages.length === 0) {
-    decision.shouldRespond = true
-    decision.reason = 'First message - welcoming'
-  }
-
-  // Detect tone from conversation
+  // Don't respond automatically - user must mention oStaran explicitly
+  decision.shouldRespond = false
+  decision.reason = 'Not mentioned - staying silent'
   decision.detectedTone = detectTone(recentMessages, newMessage)
   decision.detectedTopics = extractTopics(newMessage)
 

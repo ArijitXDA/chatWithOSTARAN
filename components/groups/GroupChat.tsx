@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { GroupMessage } from '@/types'
 import { Button } from '@/components/ui/Button'
 import toast from 'react-hot-toast'
+import { estimateTokenCount } from '@/lib/utils/tokenCounter'
 
 interface GroupChatProps {
   groupId: string
@@ -141,8 +142,10 @@ export function GroupChat({ groupId, groupName, onShowMembers, onShowInvite }: G
                 <p className="text-sm text-gray-800 whitespace-pre-wrap">
                   {message.content}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {new Date(message.created_at).toLocaleTimeString()}
+                <p className="text-xs text-gray-500 mt-1 flex items-center gap-2">
+                  <span>{new Date(message.created_at).toLocaleTimeString()}</span>
+                  <span className="text-gray-400">•</span>
+                  <span className="text-gray-400">{estimateTokenCount(message.content)} tokens</span>
                 </p>
               </div>
             </div>
