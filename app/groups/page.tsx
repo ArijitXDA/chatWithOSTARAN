@@ -1,12 +1,15 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { GroupList } from '@/components/groups/GroupList'
 import { GroupChat } from '@/components/groups/GroupChat'
 import { CreateGroupModal } from '@/components/groups/CreateGroupModal'
 import { InviteMemberModal } from '@/components/groups/InviteMemberModal'
+import { MembersModal } from '@/components/groups/MembersModal'
+import { GroupSettingsModal } from '@/components/groups/GroupSettingsModal'
 import { Button } from '@/components/ui/Button'
+import { createClient } from '@/lib/supabase/client'
 
 export default function GroupsPage() {
   const router = useRouter()
@@ -15,6 +18,20 @@ export default function GroupsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [showMembersModal, setShowMembersModal] = useState(false)
+  const [showSettingsModal, setShowSettingsModal] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState<string>('')
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        setCurrentUserId(user.id)
+      }
+    }
+    fetchUser()
+  }, [])
 
   const handleSelectGroup = async (groupId: string) => {
     setCurrentGroupId(groupId)
@@ -46,10 +63,25 @@ export default function GroupsPage() {
     }
   }
 
+  const handleLeaveGroup = () => {
+    setCurrentGroupId(null)
+    setCurrentGroupName('')
+    setShowMembersModal(false)
+    setRefreshKey(prev => prev + 1) // Refresh group list
+  }
+
+  const handleDeleteGroup = () => {
+    setCurrentGroupId(null)
+    setCurrentGroupName('')
+    setShowMembersModal(false)
+    setRefreshKey(prev => prev + 1) // Refresh group list
+  }
+
   return (
     <div className="flex h-screen">
       {/* Sidebar with group list */}
       <GroupList
+        key={refreshKey}
         onSelectGroup={handleSelectGroup}
         onCreateGroup={() => setShowCreateModal(true)}
         currentGroupId={currentGroupId || undefined}
@@ -77,6 +109,7 @@ export default function GroupsPage() {
           <GroupChat
             groupId={currentGroupId}
             groupName={currentGroupName}
+            onShowSettings={() => setShowSettingsModal(true)}
             onShowMembers={() => setShowMembersModal(true)}
             onShowInvite={() => setShowInviteModal(true)}
           />
@@ -123,6 +156,25 @@ export default function GroupsPage() {
           groupId={currentGroupId}
           groupName={currentGroupName}
           onClose={() => setShowInviteModal(false)}
+        />
+      )}
+
+      {showMembersModal && currentGroupId && currentUserId && (
+        <MembersModal
+          groupId={currentGroupId}
+          groupName={currentGroupName}
+          currentUserId={currentUserId}
+          onClose={() => setShowMembersModal(false)}
+          onLeaveGroup={handleLeaveGroup}
+          onDeleteGroup={handleDeleteGroup}
+        />
+      )}
+
+      {showSettingsModal && currentGroupId && (
+        <GroupSettingsModal
+          groupId={currentGroupId}
+          groupName={currentGroupName}
+          onClose={() => setShowSettingsModal(false)}
         />
       )}
     </div>

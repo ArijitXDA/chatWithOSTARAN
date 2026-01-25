@@ -5,15 +5,18 @@ import { GroupMessage } from '@/types'
 import { Button } from '@/components/ui/Button'
 import toast from 'react-hot-toast'
 import { estimateTokenCount } from '@/lib/utils/tokenCounter'
+import { exportGroupChatToCSV } from '@/lib/utils/exportCsv'
+import { MarkdownMessage } from './MarkdownMessage'
 
 interface GroupChatProps {
   groupId: string
   groupName: string
   onShowMembers: () => void
   onShowInvite: () => void
+  onShowSettings: () => void
 }
 
-export function GroupChat({ groupId, groupName, onShowMembers, onShowInvite }: GroupChatProps) {
+export function GroupChat({ groupId, groupName, onShowMembers, onShowInvite, onShowSettings }: GroupChatProps) {
   const [messages, setMessages] = useState<GroupMessage[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [sending, setSending] = useState(false)
@@ -46,6 +49,15 @@ export function GroupChat({ groupId, groupName, onShowMembers, onShowInvite }: G
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  const handleExportCSV = () => {
+    if (messages.length === 0) {
+      toast.error('No messages to export')
+      return
+    }
+    exportGroupChatToCSV(messages, groupName)
+    toast.success('Chat exported to CSV')
   }
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -105,11 +117,17 @@ export function GroupChat({ groupId, groupName, onShowMembers, onShowInvite }: G
           </p>
         </div>
         <div className="flex gap-2">
+          <Button onClick={onShowSettings} size="sm" variant="secondary">
+            ⚙️ Settings
+          </Button>
           <Button onClick={onShowMembers} size="sm" variant="secondary">
             👥 Members
           </Button>
           <Button onClick={onShowInvite} size="sm" variant="secondary">
             ➕ Invite
+          </Button>
+          <Button onClick={handleExportCSV} size="sm" variant="secondary">
+            📥 Export CSV
           </Button>
         </div>
       </div>
@@ -132,17 +150,17 @@ export function GroupChat({ groupId, groupName, onShowMembers, onShowInvite }: G
               <div
                 className={`max-w-[70%] rounded-lg p-3 ${
                   message.sender_type === 'ai'
-                    ? 'bg-purple-100 border-l-4 border-purple-500'
+                    ? 'bg-green-50 border-l-4 border-green-500 shadow-sm'
                     : 'bg-blue-100'
                 }`}
               >
-                <p className="text-xs font-semibold mb-1">
+                <p className="text-xs font-semibold mb-2">
                   {message.sender_type === 'ai' ? '🤖 oStaran' : message.sender_name}
                 </p>
-                <p className="text-sm text-gray-800 whitespace-pre-wrap">
-                  {message.content}
-                </p>
-                <p className="text-xs text-gray-500 mt-1 flex items-center gap-2">
+                <div className="text-sm text-gray-800">
+                  <MarkdownMessage content={message.content} isAI={message.sender_type === 'ai'} />
+                </div>
+                <p className="text-xs text-gray-500 mt-2 flex items-center gap-2">
                   <span>{new Date(message.created_at).toLocaleTimeString()}</span>
                   <span className="text-gray-400">•</span>
                   <span className="text-gray-400">{estimateTokenCount(message.content)} tokens</span>
