@@ -5,6 +5,7 @@ import { GroupMessage } from '@/types'
 import { Button } from '@/components/ui/Button'
 import toast from 'react-hot-toast'
 import { estimateTokenCount } from '@/lib/utils/tokenCounter'
+import { exportGroupChatToCSV } from '@/lib/utils/exportCsv'
 
 interface GroupChatProps {
   groupId: string
@@ -46,6 +47,15 @@ export function GroupChat({ groupId, groupName, onShowMembers, onShowInvite }: G
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  const handleExportCSV = () => {
+    if (messages.length === 0) {
+      toast.error('No messages to export')
+      return
+    }
+    exportGroupChatToCSV(messages, groupName)
+    toast.success('Chat exported to CSV')
   }
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -110,6 +120,9 @@ export function GroupChat({ groupId, groupName, onShowMembers, onShowInvite }: G
           </Button>
           <Button onClick={onShowInvite} size="sm" variant="secondary">
             ➕ Invite
+          </Button>
+          <Button onClick={handleExportCSV} size="sm" variant="secondary">
+            📥 Export CSV
           </Button>
         </div>
       </div>
