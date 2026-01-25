@@ -7,6 +7,7 @@ import { GroupChat } from '@/components/groups/GroupChat'
 import { CreateGroupModal } from '@/components/groups/CreateGroupModal'
 import { InviteMemberModal } from '@/components/groups/InviteMemberModal'
 import { MembersModal } from '@/components/groups/MembersModal'
+import { GroupSettingsModal } from '@/components/groups/GroupSettingsModal'
 import { Button } from '@/components/ui/Button'
 import { createClient } from '@/lib/supabase/client'
 
@@ -17,6 +18,7 @@ export default function GroupsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [showMembersModal, setShowMembersModal] = useState(false)
+  const [showSettingsModal, setShowSettingsModal] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string>('')
   const [refreshKey, setRefreshKey] = useState(0)
 
@@ -107,6 +109,7 @@ export default function GroupsPage() {
           <GroupChat
             groupId={currentGroupId}
             groupName={currentGroupName}
+            onShowSettings={() => setShowSettingsModal(true)}
             onShowMembers={() => setShowMembersModal(true)}
             onShowInvite={() => setShowInviteModal(true)}
           />
@@ -164,6 +167,14 @@ export default function GroupsPage() {
           onClose={() => setShowMembersModal(false)}
           onLeaveGroup={handleLeaveGroup}
           onDeleteGroup={handleDeleteGroup}
+        />
+      )}
+
+      {showSettingsModal && currentGroupId && (
+        <GroupSettingsModal
+          groupId={currentGroupId}
+          groupName={currentGroupName}
+          onClose={() => setShowSettingsModal(false)}
         />
       )}
     </div>

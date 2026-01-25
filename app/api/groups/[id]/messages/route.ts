@@ -217,8 +217,34 @@ async function generateAIResponse(
 
   const memberNames = profiles?.map((p: any) => p.first_name) || []
 
-  // Generate system prompt
-  const systemPrompt = generateGroupChatSystemPrompt(tone, topics, memberNames)
+  // Check if group has a custom persona
+  const { data: group } = await supabase
+    .from('groups')
+    .select('group_persona_id')
+    .eq('id', groupId)
+    .single()
+
+  let systemPrompt: string
+
+  if (group?.group_persona_id) {
+    // Fetch the custom persona
+    const { data: persona } = await supabase
+      .from('custom_personas')
+      .select('system_prompt, temperature_default')
+      .eq('id', group.group_persona_id)
+      .single()
+
+    if (persona && persona.system_prompt) {
+      // Use custom persona's system prompt
+      systemPrompt = persona.system_prompt
+    } else {
+      // Fallback to default
+      systemPrompt = generateGroupChatSystemPrompt(tone, topics, memberNames)
+    }
+  } else {
+    // No custom persona, use default
+    systemPrompt = generateGroupChatSystemPrompt(tone, topics, memberNames)
+  }
 
   // Prepare conversation history for AI
   const conversationHistory = [...recentMessages]

@@ -13,9 +13,10 @@ interface GroupChatProps {
   groupName: string
   onShowMembers: () => void
   onShowInvite: () => void
+  onShowSettings: () => void
 }
 
-export function GroupChat({ groupId, groupName, onShowMembers, onShowInvite }: GroupChatProps) {
+export function GroupChat({ groupId, groupName, onShowMembers, onShowInvite, onShowSettings }: GroupChatProps) {
   const [messages, setMessages] = useState<GroupMessage[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [sending, setSending] = useState(false)
@@ -116,6 +117,9 @@ export function GroupChat({ groupId, groupName, onShowMembers, onShowInvite }: G
           </p>
         </div>
         <div className="flex gap-2">
+          <Button onClick={onShowSettings} size="sm" variant="secondary">
+            ⚙️ Settings
+          </Button>
           <Button onClick={onShowMembers} size="sm" variant="secondary">
             👥 Members
           </Button>
