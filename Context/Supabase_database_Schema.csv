@@ -1,0 +1,128 @@
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE public.chat_threads (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  title text DEFAULT 'New Conversation'::text,
+  model text NOT NULL DEFAULT 'claude'::text CHECK (model = ANY (ARRAY['claude'::text, 'openai'::text, 'gemini'::text, 'grok'::text, 'ostaran-llm'::text, 'ostaran-slm'::text])),
+  persona text NOT NULL DEFAULT 'default'::text CHECK (persona = ANY (ARRAY['default'::text, 'researcher'::text, 'professor'::text, 'student'::text, 'marketing_manager'::text, 'hr_manager'::text, 'custom'::text])),
+  temperature numeric DEFAULT 0.7 CHECK (temperature >= 0::numeric AND temperature <= 2::numeric),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  is_favorite boolean DEFAULT false,
+  custom_persona_id uuid,
+  CONSTRAINT chat_threads_pkey PRIMARY KEY (id),
+  CONSTRAINT chat_threads_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT chat_threads_custom_persona_id_fkey FOREIGN KEY (custom_persona_id) REFERENCES public.custom_personas(id)
+);
+CREATE TABLE public.conversation_summaries (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  thread_id uuid NOT NULL,
+  summary text NOT NULL,
+  messages_covered integer NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT conversation_summaries_pkey PRIMARY KEY (id),
+  CONSTRAINT conversation_summaries_thread_id_fkey FOREIGN KEY (thread_id) REFERENCES public.chat_threads(id)
+);
+CREATE TABLE public.custom_personas (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  name text NOT NULL,
+  icon text DEFAULT '🎭'::text,
+  description text,
+  system_prompt text NOT NULL,
+  temperature_default numeric DEFAULT 0.7 CHECK (temperature_default >= 0::numeric AND temperature_default <= 2::numeric),
+  max_tokens integer DEFAULT 4000,
+  top_p numeric DEFAULT 1.0 CHECK (top_p >= 0::numeric AND top_p <= 1::numeric),
+  frequency_penalty numeric DEFAULT 0.0 CHECK (frequency_penalty >= '-2'::integer::numeric AND frequency_penalty <= 2::numeric),
+  presence_penalty numeric DEFAULT 0.0 CHECK (presence_penalty >= '-2'::integer::numeric AND presence_penalty <= 2::numeric),
+  creativity_level text DEFAULT 'balanced'::text CHECK (creativity_level = ANY (ARRAY['conservative'::text, 'balanced'::text, 'creative'::text, 'experimental'::text])),
+  formality_level text DEFAULT 'balanced'::text CHECK (formality_level = ANY (ARRAY['casual'::text, 'balanced'::text, 'formal'::text, 'academic'::text])),
+  verbosity_level text DEFAULT 'balanced'::text CHECK (verbosity_level = ANY (ARRAY['concise'::text, 'balanced'::text, 'detailed'::text, 'comprehensive'::text])),
+  use_emojis boolean DEFAULT false,
+  use_markdown boolean DEFAULT true,
+  use_code_blocks boolean DEFAULT true,
+  citation_style text CHECK (citation_style = ANY (ARRAY['none'::text, 'inline'::text, 'footnotes'::text, 'academic'::text])),
+  expertise_domains ARRAY,
+  language_style text DEFAULT 'standard'::text CHECK (language_style = ANY (ARRAY['standard'::text, 'technical'::text, 'simplified'::text, 'storytelling'::text])),
+  reasoning_style text DEFAULT 'balanced'::text CHECK (reasoning_style = ANY (ARRAY['intuitive'::text, 'balanced'::text, 'analytical'::text, 'step_by_step'::text])),
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT custom_personas_pkey PRIMARY KEY (id),
+  CONSTRAINT custom_personas_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.group_conversation_context (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  group_id uuid NOT NULL UNIQUE,
+  detected_tone text DEFAULT 'neutral'::text CHECK (detected_tone = ANY (ARRAY['neutral'::text, 'professional'::text, 'friendly'::text, 'casual'::text, 'technical'::text, 'academic'::text])),
+  detected_topics ARRAY,
+  last_ai_message_at timestamp with time zone,
+  message_count integer DEFAULT 0,
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT group_conversation_context_pkey PRIMARY KEY (id),
+  CONSTRAINT group_conversation_context_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups(id)
+);
+CREATE TABLE public.group_members (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  group_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  role text NOT NULL DEFAULT 'member'::text CHECK (role = ANY (ARRAY['creator'::text, 'admin'::text, 'member'::text])),
+  joined_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT group_members_pkey PRIMARY KEY (id),
+  CONSTRAINT group_members_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups(id),
+  CONSTRAINT group_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.group_messages (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  group_id uuid NOT NULL,
+  user_id uuid,
+  sender_name text NOT NULL,
+  sender_type text NOT NULL DEFAULT 'user'::text CHECK (sender_type = ANY (ARRAY['user'::text, 'ai'::text])),
+  content text NOT NULL,
+  mentioned_ostaran boolean DEFAULT false,
+  ai_should_respond boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT group_messages_pkey PRIMARY KEY (id),
+  CONSTRAINT group_messages_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups(id),
+  CONSTRAINT group_messages_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.groups (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  name text NOT NULL,
+  description text,
+  creator_id uuid NOT NULL,
+  invite_code text NOT NULL DEFAULT encode(gen_random_bytes(8), 'hex'::text) UNIQUE,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT groups_pkey PRIMARY KEY (id),
+  CONSTRAINT groups_creator_id_fkey FOREIGN KEY (creator_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.messages (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  thread_id uuid NOT NULL,
+  role text NOT NULL CHECK (role = ANY (ARRAY['user'::text, 'assistant'::text, 'system'::text])),
+  content text NOT NULL,
+  token_count integer,
+  model_used text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT messages_pkey PRIMARY KEY (id),
+  CONSTRAINT messages_thread_id_fkey FOREIGN KEY (thread_id) REFERENCES public.chat_threads(id)
+);
+CREATE TABLE public.profiles (
+  id uuid NOT NULL,
+  first_name text NOT NULL,
+  last_name text NOT NULL,
+  email text NOT NULL,
+  mobile text,
+  country_code text DEFAULT '+91'::text,
+  occupation text,
+  age integer CHECK (age >= 13 AND age <= 120),
+  gender text CHECK (gender = ANY (ARRAY['male'::text, 'female'::text, 'other'::text, 'prefer_not_to_say'::text])),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT profiles_pkey PRIMARY KEY (id),
+  CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
+);
