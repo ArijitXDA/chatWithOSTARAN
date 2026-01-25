@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button'
 import toast from 'react-hot-toast'
 import { estimateTokenCount } from '@/lib/utils/tokenCounter'
 import { exportGroupChatToCSV } from '@/lib/utils/exportCsv'
+import { MarkdownMessage } from './MarkdownMessage'
 
 interface GroupChatProps {
   groupId: string
@@ -145,17 +146,17 @@ export function GroupChat({ groupId, groupName, onShowMembers, onShowInvite }: G
               <div
                 className={`max-w-[70%] rounded-lg p-3 ${
                   message.sender_type === 'ai'
-                    ? 'bg-purple-100 border-l-4 border-purple-500'
+                    ? 'bg-green-50 border-l-4 border-green-500 shadow-sm'
                     : 'bg-blue-100'
                 }`}
               >
-                <p className="text-xs font-semibold mb-1">
+                <p className="text-xs font-semibold mb-2">
                   {message.sender_type === 'ai' ? '🤖 oStaran' : message.sender_name}
                 </p>
-                <p className="text-sm text-gray-800 whitespace-pre-wrap">
-                  {message.content}
-                </p>
-                <p className="text-xs text-gray-500 mt-1 flex items-center gap-2">
+                <div className="text-sm text-gray-800">
+                  <MarkdownMessage content={message.content} isAI={message.sender_type === 'ai'} />
+                </div>
+                <p className="text-xs text-gray-500 mt-2 flex items-center gap-2">
                   <span>{new Date(message.created_at).toLocaleTimeString()}</span>
                   <span className="text-gray-400">•</span>
                   <span className="text-gray-400">{estimateTokenCount(message.content)} tokens</span>
