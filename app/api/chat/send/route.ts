@@ -5,6 +5,8 @@ import { getProvider } from '@/lib/llm/factory'
 import { assemblePrompt } from '@/lib/utils/prompts'
 import { estimateTokens } from '@/lib/utils/token-counter'
 import { generateThreadTitle, shouldAutoName } from '@/lib/utils/autoNaming'
+import { shouldAutoSearch, extractSearchQuery } from '@/lib/utils/searchDetection'
+import { searchWeb, formatSearchResultsForLLM } from '@/lib/tools/webSearch'
 
 export async function POST(request: Request) {
   const encoder = new TextEncoder()
@@ -81,11 +83,32 @@ export async function POST(request: Request) {
           }
         }
 
+        // Auto web search detection
+        let enrichedContent = content
+        if (shouldAutoSearch(content)) {
+          console.log('[AutoSearch] Detected query needing web search:', content)
+          try {
+            const searchQuery = extractSearchQuery(content)
+            console.log('[AutoSearch] Searching for:', searchQuery)
+
+            const searchResults = await searchWeb(searchQuery, 5)
+            const formattedResults = formatSearchResultsForLLM(searchResults)
+
+            // Prepend search results to user content
+            enrichedContent = `[I performed a web search to answer your question]\n\n${formattedResults}\n\n---\n\nUser Question: ${content}`
+
+            console.log('[AutoSearch] Successfully enriched context with search results')
+          } catch (error) {
+            console.error('[AutoSearch] Failed to perform web search:', error)
+            // Continue without search results if it fails
+          }
+        }
+
         // Assemble prompt
         const llmMessages = assemblePrompt({
           persona: config.persona,
           conversationHistory: history,
-          userPrompt: content,
+          userPrompt: enrichedContent,
           customSystemPrompt,
         })
 
