@@ -11,3 +11,8 @@ Claude MUST:
 - Refer to this file before suggesting SQL
 - Never invent permissions, if not explicitly asked. Take apporval before changing permission or policy
 - Explain which policy allows or blocks access
+
+File: Supabase_database_Schema.csv
+- Contains all tables, columns, PK, FK
+- DO not delete any field/column without verifying/approval
+- Ask before modifying ant table, or field, schema of the Database
