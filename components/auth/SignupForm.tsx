@@ -2,11 +2,13 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
 
 export default function SignupForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const returnUrl = searchParams.get('returnUrl')
   
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -62,9 +64,13 @@ export default function SignupForm() {
 
       console.log('✅ Signup successful!')
       toast.success('Account created! Please check your email to verify.')
-      
+
       setTimeout(() => {
-        router.push('/auth/login')
+        // Preserve returnUrl when redirecting to login
+        const loginUrl = returnUrl
+          ? `/auth/login?returnUrl=${encodeURIComponent(returnUrl)}`
+          : '/auth/login'
+        router.push(loginUrl)
       }, 2000)
       
     } catch (error: any) {
