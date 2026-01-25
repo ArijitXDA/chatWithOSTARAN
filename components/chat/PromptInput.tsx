@@ -2,6 +2,7 @@
 
 import { useState, KeyboardEvent } from 'react'
 import { Button } from '@/components/ui/Button'
+import { WebSearchModal } from './WebSearchModal'
 
 interface PromptInputProps {
   onSend: (message: string) => void
@@ -10,6 +11,7 @@ interface PromptInputProps {
 
 export function PromptInput({ onSend, disabled }: PromptInputProps) {
   const [input, setInput] = useState('')
+  const [showWebSearch, setShowWebSearch] = useState(false)
 
   const handleSend = () => {
     if (input.trim() && !disabled) {
@@ -25,8 +27,26 @@ export function PromptInput({ onSend, disabled }: PromptInputProps) {
     }
   }
 
+  const handleUseSearchResults = (formattedResults: string) => {
+    // Prepend search results to the current input
+    const newInput = input.trim()
+      ? `${formattedResults}\n\n${input}`
+      : formattedResults
+    setInput(newInput)
+  }
+
   return (
     <div className="border-t bg-white p-4">
+      <div className="flex gap-2 mb-2">
+        <Button
+          onClick={() => setShowWebSearch(true)}
+          variant="secondary"
+          size="sm"
+          disabled={disabled}
+        >
+          🔍 Web Search
+        </Button>
+      </div>
       <div className="flex gap-2">
         <textarea
           value={input}
@@ -45,6 +65,14 @@ export function PromptInput({ onSend, disabled }: PromptInputProps) {
           Send
         </Button>
       </div>
+
+      {/* Web Search Modal */}
+      {showWebSearch && (
+        <WebSearchModal
+          onClose={() => setShowWebSearch(false)}
+          onUseResults={handleUseSearchResults}
+        />
+      )}
     </div>
   )
 }

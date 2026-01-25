@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 import { getProvider } from '@/lib/llm/factory'
 import { assemblePrompt } from '@/lib/utils/prompts'
 import { estimateTokens } from '@/lib/utils/token-counter'
+import { generateThreadTitle, shouldAutoName } from '@/lib/utils/autoNaming'
 
 export async function POST(request: Request) {
   const encoder = new TextEncoder()
@@ -142,9 +143,9 @@ export async function POST(request: Request) {
           token_count: estimateTokens(fullResponse),
         })
 
-        // Update thread updated_at and title (if first message)
+        // Update thread title
         if (history.length === 0) {
-          // Generate meaningful title from first message
+          // First message: use simple truncation
           const cleanContent = content.replace(/\n/g, ' ').trim()
           const title = cleanContent.length > 60
             ? cleanContent.slice(0, 60) + '...'
@@ -157,7 +158,41 @@ export async function POST(request: Request) {
               updated_at: new Date().toISOString()
             })
             .eq('id', threadId)
+        } else if (shouldAutoName(history.length + 2, thread.title)) {
+          // After 3rd message (2 in history + 2 just added): auto-generate title
+          console.log('[AutoNaming] Generating title for thread:', threadId)
+          try {
+            // Get all messages including the ones we just added
+            const { data: allMessages } = await supabase
+              .from('messages')
+              .select('role, content')
+              .eq('thread_id', threadId)
+              .order('created_at', { ascending: true })
+              .limit(3)
+
+            if (allMessages && allMessages.length >= 3) {
+              const generatedTitle = await generateThreadTitle(allMessages)
+
+              await supabase
+                .from('chat_threads')
+                .update({
+                  title: generatedTitle,
+                  updated_at: new Date().toISOString()
+                })
+                .eq('id', threadId)
+
+              console.log('[AutoNaming] Updated title to:', generatedTitle)
+            }
+          } catch (error) {
+            console.error('[AutoNaming] Failed to generate title:', error)
+            // Continue even if auto-naming fails
+            await supabase
+              .from('chat_threads')
+              .update({ updated_at: new Date().toISOString() })
+              .eq('id', threadId)
+          }
         } else {
+          // Just update timestamp
           await supabase
             .from('chat_threads')
             .update({
