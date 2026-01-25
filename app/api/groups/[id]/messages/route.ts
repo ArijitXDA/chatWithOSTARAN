@@ -7,6 +7,7 @@ import {
   checkIfOStaranMentioned,
   generateGroupChatSystemPrompt,
 } from '@/lib/ai/groupChatAgent'
+import { estimateTokenCount } from '@/lib/utils/tokenCounter'
 
 // GET - Fetch group messages
 export async function GET(
@@ -114,7 +115,8 @@ export async function POST(
       mentionedOStaran
     )
 
-    // Save user message
+    // Save user message with token count
+    const userTokenCount = estimateTokenCount(content.trim())
     const { data: userMessage, error: messageError } = await supabase
       .from('group_messages')
       .insert({
@@ -125,6 +127,7 @@ export async function POST(
         content: content.trim(),
         mentioned_ostaran: mentionedOStaran,
         ai_should_respond: decision.shouldRespond,
+        token_count: userTokenCount,
       })
       .select()
       .single()
@@ -282,6 +285,9 @@ async function generateAIResponse(
     aiContent = words.slice(0, 100).join(' ') + '...'
   }
 
+  // Calculate token count for AI message
+  const aiTokenCount = estimateTokenCount(aiContent)
+
   // Save AI message (use service client to bypass RLS)
   const { data: aiMessage, error: aiInsertError } = await serviceClient
     .from('group_messages')
@@ -293,6 +299,7 @@ async function generateAIResponse(
       content: aiContent,
       mentioned_ostaran: false,
       ai_should_respond: false,
+      token_count: aiTokenCount,
     })
     .select()
     .single()

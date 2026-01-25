@@ -83,21 +83,30 @@ export function MarkdownMessage({ content, isAI = false }: MarkdownMessageProps)
           // Horizontal Rule
           hr: () => <hr className="my-4 border-gray-300" />,
 
-          // Tables
+          // Tables with enhanced styling
           table: ({ children }) => (
-            <div className="overflow-x-auto mb-2">
-              <table className="min-w-full border-collapse border border-gray-300">
+            <div className="overflow-x-auto my-4">
+              <table className="min-w-full border-collapse border-2 border-gray-400 shadow-sm">
                 {children}
               </table>
             </div>
           ),
+          thead: ({ children }) => (
+            <thead className="bg-gray-200">{children}</thead>
+          ),
+          tbody: ({ children }) => (
+            <tbody className="bg-white">{children}</tbody>
+          ),
+          tr: ({ children }) => (
+            <tr className="hover:bg-gray-50">{children}</tr>
+          ),
           th: ({ children }) => (
-            <th className="border border-gray-300 px-4 py-2 bg-gray-100 font-semibold text-left">
+            <th className="border border-gray-300 px-3 py-2 bg-gray-100 font-bold text-left text-sm">
               {children}
             </th>
           ),
           td: ({ children }) => (
-            <td className="border border-gray-300 px-4 py-2">{children}</td>
+            <td className="border border-gray-300 px-3 py-2 text-sm">{children}</td>
           ),
         }}
       >
