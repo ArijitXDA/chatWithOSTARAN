@@ -224,22 +224,22 @@ async function generateAIResponse(
   // Get AI provider (use OpenAI/GPT-4 for group chat)
   const provider = getProvider('openai')
 
-  // Generate response with strict 10-word limit
+  // Generate response with 100-word limit
   const response = await provider.chat({
     messages: [
       { role: 'system', content: systemPrompt },
       ...conversationHistory,
     ],
     temperature: 0.7,
-    max_tokens: 50, // Limit tokens to enforce brevity
+    max_tokens: 200, // Allow up to ~100 words
   })
 
   let aiContent = response.content.trim()
 
-  // Enforce 10-word limit
+  // Enforce 100-word limit
   const words = aiContent.split(/\s+/)
-  if (words.length > 10) {
-    aiContent = words.slice(0, 10).join(' ') + '...'
+  if (words.length > 100) {
+    aiContent = words.slice(0, 100).join(' ') + '...'
   }
 
   // Save AI message (use service client to bypass RLS)
