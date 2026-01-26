@@ -167,25 +167,17 @@ export async function POST(request: Request) {
         })
 
         // Update thread title
-        if (history.length === 0) {
-          // First message: use simple truncation
-          const cleanContent = content.replace(/\n/g, ' ').trim()
-          const title = cleanContent.length > 60
-            ? cleanContent.slice(0, 60) + '...'
-            : cleanContent || 'New Conversation'
+        // history.length includes the user message we just saved
+        // We just saved the AI message, so total messages = history.length + 1
+        const totalMessages = history.length + 1
 
-          await supabase
-            .from('chat_threads')
-            .update({
-              title,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', threadId)
-        } else if (shouldAutoName(history.length + 2, thread.title)) {
-          // After 3rd message (2 in history + 2 just added): auto-generate title
-          console.log('[AutoNaming] Generating title for thread:', threadId)
+        console.log('[TitleUpdate] Total messages:', totalMessages, 'Current title:', thread.title)
+
+        if (shouldAutoName(totalMessages, thread.title)) {
+          // Auto-generate title after 3rd message
+          console.log('[AutoNaming] Triggering for thread:', threadId)
           try {
-            // Get all messages including the ones we just added
+            // Get first 3 messages for context
             const { data: allMessages } = await supabase
               .from('messages')
               .select('role, content')
@@ -205,10 +197,15 @@ export async function POST(request: Request) {
                 .eq('id', threadId)
 
               console.log('[AutoNaming] Updated title to:', generatedTitle)
+            } else {
+              console.log('[AutoNaming] Not enough messages:', allMessages?.length)
+              await supabase
+                .from('chat_threads')
+                .update({ updated_at: new Date().toISOString() })
+                .eq('id', threadId)
             }
           } catch (error) {
             console.error('[AutoNaming] Failed to generate title:', error)
-            // Continue even if auto-naming fails
             await supabase
               .from('chat_threads')
               .update({ updated_at: new Date().toISOString() })
@@ -216,6 +213,7 @@ export async function POST(request: Request) {
           }
         } else {
           // Just update timestamp
+          console.log('[TitleUpdate] Not auto-naming. MessageCount:', totalMessages, 'Title:', thread.title)
           await supabase
             .from('chat_threads')
             .update({

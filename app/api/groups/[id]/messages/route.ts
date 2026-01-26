@@ -8,6 +8,8 @@ import {
   generateGroupChatSystemPrompt,
 } from '@/lib/ai/groupChatAgent'
 import { estimateTokenCount } from '@/lib/utils/tokenCounter'
+import { shouldAutoSearch, extractSearchQuery } from '@/lib/utils/searchDetection'
+import { searchWeb, formatSearchResultsForLLM } from '@/lib/tools/webSearch'
 
 // GET - Fetch group messages
 export async function GET(
@@ -249,6 +251,27 @@ async function generateAIResponse(
     systemPrompt = generateGroupChatSystemPrompt(tone, topics, memberNames)
   }
 
+  // Auto web search detection for user message
+  let enrichedMessage = userMessage
+  if (shouldAutoSearch(userMessage)) {
+    console.log('[Group AutoSearch] Detected query needing web search:', userMessage)
+    try {
+      const searchQuery = extractSearchQuery(userMessage)
+      console.log('[Group AutoSearch] Searching for:', searchQuery)
+
+      const searchResults = await searchWeb(searchQuery, 5)
+      const formattedResults = formatSearchResultsForLLM(searchResults)
+
+      // Prepend search results to user message
+      enrichedMessage = `[Web search performed for real-time information]\n\n${formattedResults}\n\n---\n\nUser Question: ${userMessage}`
+
+      console.log('[Group AutoSearch] Successfully enriched context with search results')
+    } catch (error) {
+      console.error('[Group AutoSearch] Failed to perform web search:', error)
+      // Continue without search results if it fails
+    }
+  }
+
   // Prepare conversation history for AI
   const conversationHistory = [...recentMessages]
     .reverse()
@@ -258,10 +281,10 @@ async function generateAIResponse(
       content: `${msg.sender_name}: ${msg.content}`,
     }))
 
-  // Add current message
+  // Add current message (enriched with search if applicable)
   conversationHistory.push({
     role: 'user',
-    content: userMessage,
+    content: enrichedMessage,
   })
 
   // Get AI provider (use OpenAI/GPT-4 for group chat)
