@@ -21,14 +21,21 @@ MCP (Model Context Protocol) allows oStaran to connect to external systems and u
 
 ## Setup Instructions
 
-### 1. Verify oCRM MCP Server is Running
+### 1. Verify CRM MCP Server is Built
 
-First, ensure that the oCRM MCP server is properly configured in your oCRM project. The MCP server should be built and ready to run.
+First, ensure that the CRM MCP server is properly built. The MCP server should be in the `crm-mcp-server` submodule.
 
-**Check oCRM Project:**
+**Check CRM MCP Server:**
 ```bash
-cd /path/to/oCRM
-ls dist/mcp/server.js  # Verify the MCP server exists
+ls /home/user/oStaran/crm-mcp-server/dist/mcp/server.js
+# Should show the built server file
+```
+
+If the server isn't built yet:
+```bash
+cd /home/user/oStaran/crm-mcp-server
+npm install
+npm run build
 ```
 
 ### 2. Configure Environment Variables
@@ -38,39 +45,51 @@ Add the following environment variables to your `.env.local` file:
 ```bash
 # Enable MCP Integration
 ENABLE_MCP=true
-ENABLE_OCRM_MCP=true
+ENABLE_CRM_MCP=true
 
-# Path to oCRM MCP Server
-# For local development:
-OCRM_MCP_SERVER_PATH=/absolute/path/to/oCRM/dist/mcp/server.js
+# Path to CRM MCP Server
+CRM_MCP_SERVER_PATH=/home/user/oStaran/crm-mcp-server/dist/mcp/server.js
 
-# oCRM Configuration (passed to MCP server)
-OCRM_DATABASE_URL=postgresql://user:pass@localhost:5432/ocrm
-OCRM_API_KEY=your_ocrm_api_key_here
+# CRM Supabase Configuration
+CRM_MCP_USER_EMAIL=your-email@example.com
+CRM_SUPABASE_URL=https://your-project.supabase.co
+CRM_SUPABASE_KEY=your_supabase_anon_key
 ```
 
-**Important:** Use absolute paths for `OCRM_MCP_SERVER_PATH`.
+**Important:**
+- Use absolute paths for `CRM_MCP_SERVER_PATH`
+- The CRM uses Supabase, not direct PostgreSQL
+- `CRM_SUPABASE_KEY` should be your Supabase anon or service key
 
 ### 3. Update Vercel Environment Variables (Production)
 
 In your Vercel project settings, add the same environment variables:
 
 1. Go to Vercel Dashboard → Your Project → Settings → Environment Variables
-2. Add all the variables above
+2. Add all the variables above:
+   - `ENABLE_MCP=true`
+   - `ENABLE_CRM_MCP=true`
+   - `CRM_MCP_SERVER_PATH` (use production path)
+   - `CRM_MCP_USER_EMAIL`
+   - `CRM_SUPABASE_URL`
+   - `CRM_SUPABASE_KEY`
 3. Redeploy your application
 
-**Note:** For production, you may need to deploy the oCRM MCP server separately and update the connection method (e.g., HTTP/SSE instead of stdio).
+**Note:** For Vercel deployment, ensure the CRM MCP server is accessible from the Vercel environment. You may need to include the `crm-mcp-server` directory in your deployment or deploy it separately.
 
 ### 4. Test the Integration
 
-Create a new chat and ask oStaran to interact with oCRM:
+Create a new chat and ask oStaran to interact with CRM:
 
 ```
 User: "Show me all leads from the past week"
-oStaran: [Uses oCRM tools to fetch and display leads]
+oStaran: [Uses CRM tools to fetch and display leads]
 
 User: "Update the status of lead ID 123 to 'qualified'"
-oStaran: [Calls oCRM tool to update the lead]
+oStaran: [Calls CRM tool to update the lead]
+
+User: "List all my CRM contacts"
+oStaran: [Fetches and displays contacts from CRM]
 ```
 
 ## How It Works
@@ -105,17 +124,20 @@ The system supports multiple tool calls:
 - LLM can call tools across multiple turns
 - Maximum 5 iterations to prevent infinite loops
 
-## Available oCRM Tools
+## Available CRM Tools
 
-The exact tools depend on your oCRM MCP server implementation. Common tools might include:
+The exact tools depend on your CRM MCP server implementation. Common tools might include:
 
-- `getLeads` - Fetch leads with filters
-- `getLead` - Get a specific lead by ID
-- `updateLead` - Update lead information
-- `searchContacts` - Search for contacts
-- `createLead` - Create a new lead
-- `getCustomers` - Fetch customers
+- `list_leads` - Fetch leads with optional filters
+- `get_lead` - Get a specific lead by ID
+- `create_lead` - Create a new lead
+- `update_lead` - Update lead information
+- `list_contacts` - Fetch all contacts
+- `search_contacts` - Search for specific contacts
+- `get_contact` - Get contact details
 - And more...
+
+**Note:** Tool names will be prefixed with the server name in the LLM context (e.g., `CRM_list_leads`).
 
 ## Debugging
 
@@ -124,38 +146,43 @@ The exact tools depend on your oCRM MCP server implementation. Common tools migh
 All MCP operations are logged with the `[MCP]` prefix:
 
 ```bash
-# In your application logs, you'll see:
+# In your application logs (Vercel or local console), you'll see:
 [MCP] Initializing MCP manager...
-[MCP] Added server: oCRM
-[MCP] Connected to oCRM
-[MCP] Available tools: getLeads, updateLead, searchContacts
-[MCP Tools] Calling LLM with 3 available tools
+[MCP] Added server: CRM
+[MCP] Connected to CRM
+[MCP] Available tools: list_leads, get_lead, update_lead, list_contacts, search_contacts
+[MCP Tools] Calling LLM with 5 available tools
 [MCP Tools] LLM requested 1 tool calls
-[MCP Tools] Executing: oCRM.getLeads { status: 'new' }
+[MCP Tools] Executing: CRM.list_leads { status: 'new', limit: 10 }
 [MCP Tools] Tool result: { leads: [...] }
+[MCP Tools] Conversation complete. Tools used: 1
 ```
 
 ### Check MCP Connection
 
 To verify MCP is working, check the application startup logs for:
 ```
+[MCP] Initializing MCP manager...
+[MCP] Added server: CRM
+[MCP] Connected to CRM
+[MCP] Available tools: list_leads, get_lead, create_lead, update_lead, list_contacts...
 [MCP] Initialization complete
-[MCP] Available tools: [list of tools]
 ```
 
 ### Common Issues
 
 **Problem:** "MCP manager not initialized"
-**Solution:** Ensure `ENABLE_MCP=true` and `ENABLE_OCRM_MCP=true` are set
+**Solution:** Ensure `ENABLE_MCP=true` and `ENABLE_CRM_MCP=true` are set
 
-**Problem:** "Server oCRM not found"
-**Solution:** Check that `OCRM_MCP_SERVER_PATH` points to the correct file
+**Problem:** "Server CRM not found"
+**Solution:** Check that `CRM_MCP_SERVER_PATH` points to the correct file
 
-**Problem:** "Failed to connect to oCRM"
+**Problem:** "Failed to connect to CRM"
 **Solution:**
-- Verify the MCP server file exists and is executable
-- Check that oCRM dependencies are installed
-- Verify database credentials are correct
+- Verify the MCP server file exists: `ls /home/user/oStaran/crm-mcp-server/dist/mcp/server.js`
+- Check that dependencies are installed in crm-mcp-server: `cd crm-mcp-server && npm install`
+- Verify Supabase credentials are correct (URL and key)
+- Check that the user email exists in the CRM Supabase database
 
 ## Architecture Details
 

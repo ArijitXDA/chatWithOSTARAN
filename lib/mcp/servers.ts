@@ -6,25 +6,27 @@
 import { MCPServer } from './client'
 
 /**
- * oCRM MCP Server Configuration
+ * CRM MCP Server Configuration
  *
- * IMPORTANT: Update these values based on your oCRM setup:
- * - For local development: use the oCRM project path
- * - For production: use the deployed oCRM MCP server endpoint
+ * Uses Supabase for data storage and authentication
+ * Configure via environment variables:
+ * - CRM_MCP_SERVER_PATH: Path to the built MCP server
+ * - CRM_MCP_USER_EMAIL: User email for CRM access
+ * - CRM_SUPABASE_URL: Supabase project URL
+ * - CRM_SUPABASE_KEY: Supabase anon/service key
  */
 export const MCP_SERVERS: Record<string, MCPServer> = {
-  oCRM: {
-    name: 'oCRM',
+  CRM: {
+    name: 'CRM',
     command: 'node',
     args: [
-      // TODO: Update this path to your oCRM MCP server entry point
-      // Example: '/path/to/oCRM/dist/mcp/server.js'
-      process.env.OCRM_MCP_SERVER_PATH || '/tmp/oCRM/dist/mcp/server.js',
+      process.env.CRM_MCP_SERVER_PATH || '/home/user/oStaran/crm-mcp-server/dist/mcp/server.js',
     ],
     env: {
-      // Pass any required environment variables to the oCRM server
-      OCRM_DATABASE_URL: process.env.OCRM_DATABASE_URL || '',
-      OCRM_API_KEY: process.env.OCRM_API_KEY || '',
+      // Supabase configuration for CRM
+      CRM_MCP_USER_EMAIL: process.env.CRM_MCP_USER_EMAIL || '',
+      CRM_SUPABASE_URL: process.env.CRM_SUPABASE_URL || '',
+      CRM_SUPABASE_KEY: process.env.CRM_SUPABASE_KEY || '',
     },
   },
   // Add more MCP servers here as needed
@@ -42,9 +44,9 @@ export const MCP_SERVERS: Record<string, MCPServer> = {
 export function getEnabledServers(): Record<string, MCPServer> {
   const enabled: Record<string, MCPServer> = {}
 
-  // Check if oCRM is enabled
-  if (process.env.ENABLE_OCRM_MCP === 'true' || process.env.OCRM_MCP_SERVER_PATH) {
-    enabled.oCRM = MCP_SERVERS.oCRM
+  // Check if CRM is enabled
+  if (process.env.ENABLE_CRM_MCP === 'true' || process.env.CRM_MCP_SERVER_PATH) {
+    enabled.CRM = MCP_SERVERS.CRM
   }
 
   return enabled
