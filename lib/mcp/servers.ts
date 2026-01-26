@@ -32,16 +32,19 @@ import { MCPServer } from './client'
 function getCRMServerConfig(): MCPServer | null {
   // Determine transport type
   const transport = process.env.CRM_MCP_TRANSPORT ||
-    (process.env.CRM_MCP_HTTP_URL ? 'http' : 'stdio')
+    (process.env.CRM_MCP_HTTP_URL || process.env.NEXT_PUBLIC_MCP_SERVER_URL ? 'http' : 'stdio')
 
   if (transport === 'http') {
     // HTTP/SSE transport for production
-    const url = process.env.CRM_MCP_HTTP_URL
+    const baseUrl = process.env.CRM_MCP_HTTP_URL || process.env.NEXT_PUBLIC_MCP_SERVER_URL
 
-    if (!url) {
-      console.warn('[MCP] CRM_MCP_HTTP_URL not configured for HTTP transport')
+    if (!baseUrl) {
+      console.warn('[MCP] No HTTP URL configured for CRM')
       return null
     }
+
+    // Use /sse endpoint for SSE transport
+    const url = baseUrl.endsWith('/sse') ? baseUrl : `${baseUrl}/sse`
 
     const headers: Record<string, string> = {}
 
@@ -53,6 +56,8 @@ function getCRMServerConfig(): MCPServer | null {
         console.error('[MCP] Failed to parse CRM_MCP_HTTP_HEADERS:', error)
       }
     }
+
+    console.log('[MCP] Using HTTP transport for CRM:', url)
 
     return {
       name: 'CRM',

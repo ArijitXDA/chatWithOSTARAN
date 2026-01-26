@@ -9,23 +9,26 @@ import { PersonaSelector } from './PersonaSelector'
 import { TemperatureControl } from './TemperatureControl'
 import { ThreadSidebar } from './ThreadSidebar'
 import { Button } from '@/components/ui/Button'
+import { IntegrationsModal } from '@/components/integrations/IntegrationsModal'
 import { ChatMessage, ChatConfig, ChatThread, ModelType, PersonaType } from '@/types'
 import { useThreads } from '@/hooks/useThreads'
 import toast from 'react-hot-toast'
 
 interface ChatInterfaceProps {
   userName: string
+  userEmail: string
   onSignOut: () => void
 }
 
-export function ChatInterface({ userName, onSignOut }: ChatInterfaceProps) {
+export function ChatInterface({ userName, userEmail, onSignOut }: ChatInterfaceProps) {
   const router = useRouter()
   const { threads, loading: threadsLoading, createThread, deleteThread } = useThreads()
-  
+
   const [currentThreadId, setCurrentThreadId] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [showSidebar, setShowSidebar] = useState(true)
+  const [showIntegrations, setShowIntegrations] = useState(false)
   
   const [config, setConfig] = useState<ChatConfig>({
     model: 'claude' as ModelType,
@@ -240,6 +243,13 @@ export function ChatInterface({ userName, onSignOut }: ChatInterfaceProps) {
           </div>
           <div className="flex gap-2">
             <Button
+              onClick={() => setShowIntegrations(true)}
+              variant="secondary"
+              size="sm"
+            >
+              🔌 Integrations
+            </Button>
+            <Button
               onClick={() => router.push('/groups')}
               variant="secondary"
               size="sm"
@@ -279,6 +289,14 @@ export function ChatInterface({ userName, onSignOut }: ChatInterfaceProps) {
         {/* Input */}
         <PromptInput onSend={handleSendMessage} disabled={isLoading} />
       </div>
+
+      {/* Integrations Modal */}
+      {showIntegrations && (
+        <IntegrationsModal
+          onClose={() => setShowIntegrations(false)}
+          userEmail={userEmail}
+        />
+      )}
     </div>
   )
 }
