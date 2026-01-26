@@ -1,10 +1,11 @@
 /**
- * MCP (Model Context Protocol) Client for oCRM Integration
- * Connects to external MCP servers to provide tools and resources to the AI
+ * MCP (Model Context Protocol) Client for CRM Integration
+ * Supports both stdio (local) and HTTP/SSE (production) transports
  */
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
+import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js'
 
 export interface MCPTool {
   name: string
@@ -12,23 +13,35 @@ export interface MCPTool {
   inputSchema: any
 }
 
-export interface MCPServer {
+export type MCPTransportType = 'stdio' | 'http'
+
+export interface MCPServerStdio {
   name: string
+  transport: 'stdio'
   command: string
   args?: string[]
   env?: Record<string, string>
 }
 
+export interface MCPServerHTTP {
+  name: string
+  transport: 'http'
+  url: string
+  headers?: Record<string, string>
+}
+
+export type MCPServer = MCPServerStdio | MCPServerHTTP
+
 export class MCPClient {
   private client: Client | null = null
-  private transport: StdioClientTransport | null = null
+  private transport: StdioClientTransport | SSEClientTransport | null = null
   private tools: Map<string, MCPTool> = new Map()
   private connected: boolean = false
 
   constructor(private serverConfig: MCPServer) {}
 
   /**
-   * Connect to the MCP server
+   * Connect to the MCP server using the configured transport
    */
   async connect(): Promise<void> {
     if (this.connected) {
@@ -36,26 +49,11 @@ export class MCPClient {
     }
 
     try {
-      // Build environment variables (filter undefined values)
-      const env: Record<string, string> = {}
-      if (process.env) {
-        for (const [key, value] of Object.entries(process.env)) {
-          if (value !== undefined) {
-            env[key] = value
-          }
-        }
+      if (this.serverConfig.transport === 'stdio') {
+        await this.connectStdio(this.serverConfig)
+      } else {
+        await this.connectHTTP(this.serverConfig)
       }
-      // Add server-specific env vars
-      for (const [key, value] of Object.entries(this.serverConfig.env || {})) {
-        env[key] = value
-      }
-
-      // Create stdio transport
-      this.transport = new StdioClientTransport({
-        command: this.serverConfig.command,
-        args: this.serverConfig.args || [],
-        env,
-      })
 
       // Create client
       this.client = new Client(
@@ -69,18 +67,57 @@ export class MCPClient {
       )
 
       // Connect
-      await this.client.connect(this.transport)
+      await this.client.connect(this.transport!)
 
       // List available tools
       await this.refreshTools()
 
       this.connected = true
-      console.log(`[MCP] Connected to ${this.serverConfig.name}`)
+      console.log(`[MCP] Connected to ${this.serverConfig.name} via ${this.serverConfig.transport}`)
       console.log(`[MCP] Available tools:`, Array.from(this.tools.keys()))
     } catch (error) {
       console.error(`[MCP] Failed to connect to ${this.serverConfig.name}:`, error)
       throw error
     }
+  }
+
+  /**
+   * Connect via stdio transport (local development)
+   */
+  private async connectStdio(config: MCPServerStdio): Promise<void> {
+    // Build environment variables (filter undefined values)
+    const env: Record<string, string> = {}
+    if (process.env) {
+      for (const [key, value] of Object.entries(process.env)) {
+        if (value !== undefined) {
+          env[key] = value
+        }
+      }
+    }
+    // Add server-specific env vars
+    for (const [key, value] of Object.entries(config.env || {})) {
+      env[key] = value
+    }
+
+    // Create stdio transport
+    this.transport = new StdioClientTransport({
+      command: config.command,
+      args: config.args || [],
+      env,
+    })
+
+    console.log(`[MCP] Using stdio transport: ${config.command} ${config.args?.join(' ') || ''}`)
+  }
+
+  /**
+   * Connect via HTTP/SSE transport (production)
+   */
+  private async connectHTTP(config: MCPServerHTTP): Promise<void> {
+    console.log(`[MCP] Using HTTP/SSE transport: ${config.url}`)
+
+    // Create SSE transport
+    // Note: Headers can be passed via EventSource options if needed
+    this.transport = new SSEClientTransport(new URL(config.url))
   }
 
   /**
