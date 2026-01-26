@@ -51,6 +51,7 @@ export default function ChatPage() {
   return (
     <ChatInterface
       userName={profile.first_name}
+      userEmail={user.email || ''}
       onSignOut={handleSignOut}
     />
   )

@@ -7,6 +7,8 @@ import { estimateTokens } from '@/lib/utils/token-counter'
 import { generateThreadTitle, shouldAutoName } from '@/lib/utils/autoNaming'
 import { shouldAutoSearch, extractSearchQuery } from '@/lib/utils/searchDetection'
 import { searchWeb, formatSearchResultsForLLM } from '@/lib/tools/webSearch'
+import { chatWithTools, areMCPToolsAvailable } from '@/lib/mcp/toolHandler'
+import { initializeMCP } from '@/lib/mcp'
 
 export async function POST(request: Request) {
   const encoder = new TextEncoder()
@@ -137,10 +139,51 @@ export async function POST(request: Request) {
           }
         }
 
-        // Stream response
-        let fullResponse = ''
+        // Check if MCP tools are available and provider supports them
+        const useMCPTools = areMCPToolsAvailable() && provider.supportsTools
 
-        if (provider.streamChat) {
+        let fullResponse = ''
+        let toolsUsed: string[] = []
+
+        if (useMCPTools) {
+          // Use MCP tool calling (non-streaming)
+          console.log('[MCP] Using tool-enabled chat')
+
+          try {
+            // Initialize MCP if not already done
+            await initializeMCP()
+
+            // Execute chat with tools
+            const toolResult = await chatWithTools(provider, llmMessages, {
+              temperature: effectiveTemperature,
+              maxTokens: llmOptions.max_tokens,
+            })
+
+            fullResponse = toolResult.response
+            toolsUsed = toolResult.toolsUsed
+
+            // Send complete response to client
+            const data = JSON.stringify({ delta: fullResponse })
+            controller.enqueue(encoder.encode(`data: ${data}\n\n`))
+
+            // Log tool usage
+            if (toolResult.toolCalls > 0) {
+              console.log(
+                `[MCP] Completed with ${toolResult.toolCalls} tool calls:`,
+                toolsUsed
+              )
+            }
+          } catch (error) {
+            console.error('[MCP] Tool calling failed, falling back to regular chat:', error)
+            // Fallback to regular chat
+            const response = await provider.chat(llmOptions)
+            fullResponse = response.content
+
+            const data = JSON.stringify({ delta: response.content })
+            controller.enqueue(encoder.encode(`data: ${data}\n\n`))
+          }
+        } else if (provider.streamChat) {
+          // Regular streaming chat (no tools)
           for await (const chunk of provider.streamChat(llmOptions)) {
             fullResponse += chunk
 
