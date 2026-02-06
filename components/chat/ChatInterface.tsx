@@ -10,7 +10,7 @@ import { TemperatureControl } from './TemperatureControl'
 import { ThreadSidebar } from './ThreadSidebar'
 import { Button } from '@/components/ui/Button'
 import { IntegrationsModal } from '@/components/integrations/IntegrationsModal'
-import { ChatMessage, ChatConfig, ChatThread, ModelType, PersonaType } from '@/types'
+import { ChatMessage, ChatConfig, ChatThread, ModelType, PersonaType, UploadedFile } from '@/types'
 import { useThreads } from '@/hooks/useThreads'
 import toast from 'react-hot-toast'
 
@@ -98,14 +98,14 @@ export function ChatInterface({ userName, userEmail, onSignOut }: ChatInterfaceP
     }
   }
 
-  const handleSendMessage = async (content: string) => {
+  const handleSendMessage = async (content: string, files?: UploadedFile[]) => {
     if (!currentThreadId) {
       // Create new thread if none exists
       try {
         const thread = await createThread(config)
         setCurrentThreadId(thread.id)
         // Will send message after thread is created via useEffect
-        setTimeout(() => sendMessageToThread(thread.id, content), 100)
+        setTimeout(() => sendMessageToThread(thread.id, content, files), 100)
       } catch (error) {
         toast.error('Failed to create conversation')
         return
@@ -113,17 +113,22 @@ export function ChatInterface({ userName, userEmail, onSignOut }: ChatInterfaceP
       return
     }
 
-    await sendMessageToThread(currentThreadId, content)
+    await sendMessageToThread(currentThreadId, content, files)
   }
 
-  const sendMessageToThread = async (threadId: string, content: string) => {
+  const sendMessageToThread = async (threadId: string, content: string, files?: UploadedFile[]) => {
     setIsLoading(true)
 
-    // Add user message
+    // Add user message with file indicator
+    let displayContent = content
+    if (files && files.length > 0) {
+      displayContent += `\n\n📎 ${files.length} file(s) attached`
+    }
+
     const userMessage: ChatMessage = {
       id: `temp-user-${Date.now()}`,
       role: 'user',
-      content,
+      content: displayContent,
       timestamp: new Date(),
     }
     setMessages((prev) => [...prev, userMessage])
@@ -140,6 +145,18 @@ export function ChatInterface({ userName, userEmail, onSignOut }: ChatInterfaceP
     setMessages((prev) => [...prev, assistantMessage])
 
     try {
+      // Prepare files data for API
+      const filesData = files?.map(f => ({
+        fileName: f.file.name,
+        fileType: f.file.type,
+        fileSize: f.file.size,
+        category: f.category,
+        extractedText: f.extractedText,
+        width: f.dimensions?.width,
+        height: f.dimensions?.height,
+        base64Data: f.base64Data, // For vision support
+      }))
+
       const response = await fetch('/api/chat/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -147,6 +164,7 @@ export function ChatInterface({ userName, userEmail, onSignOut }: ChatInterfaceP
           threadId,
           content,
           config,
+          files: filesData,
         }),
       })
 

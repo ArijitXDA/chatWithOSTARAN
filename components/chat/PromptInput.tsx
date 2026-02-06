@@ -3,20 +3,27 @@
 import { useState, KeyboardEvent } from 'react'
 import { Button } from '@/components/ui/Button'
 import { WebSearchModal } from './WebSearchModal'
+import { FileUploadArea } from './FileUploadArea'
+import { UploadedFile } from '@/types/chat'
+import { Paperclip } from 'lucide-react'
 
 interface PromptInputProps {
-  onSend: (message: string) => void
+  onSend: (message: string, files?: UploadedFile[]) => void
   disabled?: boolean
 }
 
 export function PromptInput({ onSend, disabled }: PromptInputProps) {
   const [input, setInput] = useState('')
   const [showWebSearch, setShowWebSearch] = useState(false)
+  const [showFileUpload, setShowFileUpload] = useState(false)
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
 
   const handleSend = () => {
-    if (input.trim() && !disabled) {
-      onSend(input.trim())
+    if ((input.trim() || uploadedFiles.length > 0) && !disabled) {
+      onSend(input.trim(), uploadedFiles.length > 0 ? uploadedFiles : undefined)
       setInput('')
+      setUploadedFiles([])
+      setShowFileUpload(false)
     }
   }
 
@@ -46,7 +53,28 @@ export function PromptInput({ onSend, disabled }: PromptInputProps) {
         >
           🔍 Web Search
         </Button>
+        <Button
+          onClick={() => setShowFileUpload(!showFileUpload)}
+          variant="secondary"
+          size="sm"
+          disabled={disabled}
+        >
+          <Paperclip className="w-4 h-4 mr-1" />
+          {showFileUpload ? 'Hide Upload' : 'Attach Files'}
+          {uploadedFiles.length > 0 && ` (${uploadedFiles.length})`}
+        </Button>
       </div>
+
+      {/* File Upload Area */}
+      {showFileUpload && (
+        <div className="mb-3">
+          <FileUploadArea
+            files={uploadedFiles}
+            onFilesChange={setUploadedFiles}
+          />
+        </div>
+      )}
+
       <div className="flex gap-2">
         <textarea
           value={input}
@@ -59,7 +87,7 @@ export function PromptInput({ onSend, disabled }: PromptInputProps) {
         />
         <Button
           onClick={handleSend}
-          disabled={disabled || !input.trim()}
+          disabled={disabled || (!input.trim() && uploadedFiles.length === 0)}
           className="self-end"
         >
           Send

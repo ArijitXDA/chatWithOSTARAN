@@ -105,6 +105,38 @@ ALTER TABLE chat_threads
 ADD COLUMN custom_persona_id UUID REFERENCES custom_personas(id) ON DELETE SET NULL;
 
 -- ============================================
+-- FILE ATTACHMENTS TABLE
+-- ============================================
+CREATE TABLE file_attachments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  message_id UUID NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+
+  -- File metadata
+  file_name TEXT NOT NULL,
+  file_type TEXT NOT NULL, -- mime type (image/png, application/pdf, etc.)
+  file_size INTEGER NOT NULL, -- in bytes
+  file_category TEXT NOT NULL CHECK (file_category IN ('image', 'document', 'spreadsheet', 'other')),
+
+  -- Storage information
+  storage_path TEXT NOT NULL, -- path in Supabase Storage
+  storage_bucket TEXT DEFAULT 'chat-attachments',
+
+  -- Extracted content (for non-image files)
+  extracted_text TEXT, -- parsed content from PDFs, docs, excel
+
+  -- Image-specific metadata
+  width INTEGER,
+  height INTEGER,
+
+  -- Processing status
+  processing_status TEXT DEFAULT 'pending' CHECK (processing_status IN ('pending', 'processing', 'completed', 'failed')),
+  processing_error TEXT,
+
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================
 -- INDEXES FOR PERFORMANCE
 -- ============================================
 CREATE INDEX idx_profiles_email ON profiles(email);
@@ -112,6 +144,8 @@ CREATE INDEX idx_threads_user_created ON chat_threads(user_id, created_at DESC);
 CREATE INDEX idx_threads_user_favorite_updated ON chat_threads(user_id, is_favorite DESC, updated_at DESC);
 CREATE INDEX idx_messages_thread_created ON messages(thread_id, created_at ASC);
 CREATE INDEX idx_custom_personas_user ON custom_personas(user_id, is_active);
+CREATE INDEX idx_file_attachments_message ON file_attachments(message_id);
+CREATE INDEX idx_file_attachments_user ON file_attachments(user_id, created_at DESC);
 
 -- ============================================
 -- ROW LEVEL SECURITY (RLS)
@@ -121,6 +155,7 @@ ALTER TABLE chat_threads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE conversation_summaries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE custom_personas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE file_attachments ENABLE ROW LEVEL SECURITY;
 
 -- ============================================
 -- RLS POLICIES - Profiles
@@ -217,6 +252,26 @@ CREATE POLICY "Users can delete own custom personas"
   USING (auth.uid() = user_id);
 
 -- ============================================
+-- RLS POLICIES - File Attachments
+-- ============================================
+CREATE POLICY "Users can view own file attachments"
+  ON file_attachments FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can create own file attachments"
+  ON file_attachments FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own file attachments"
+  ON file_attachments FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own file attachments"
+  ON file_attachments FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- ============================================
 -- FUNCTIONS & TRIGGERS
 -- ============================================
 
@@ -253,7 +308,7 @@ CREATE TRIGGER update_custom_personas_updated_at
 DO $$
 BEGIN
   RAISE NOTICE '✅ Database schema created successfully!';
-  RAISE NOTICE '📊 Tables: profiles, chat_threads, messages, conversation_summaries, custom_personas';
+  RAISE NOTICE '📊 Tables: profiles, chat_threads, messages, conversation_summaries, custom_personas, file_attachments';
   RAISE NOTICE '🔒 Row Level Security enabled on all tables';
-  RAISE NOTICE '🎯 Ready for authentication, chat, and custom persona functionality';
+  RAISE NOTICE '🎯 Ready for authentication, chat, custom personas, and file attachment functionality';
 END $$;

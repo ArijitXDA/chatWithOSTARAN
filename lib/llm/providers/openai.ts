@@ -30,21 +30,42 @@ export class OpenAIProvider extends BaseLLMProvider {
         // Tool messages require tool_call_id
         return {
           role: 'tool' as const,
-          content: m.content,
+          content: typeof m.content === 'string' ? m.content : m.content.find(b => b.type === 'text')?.text || '',
           tool_call_id: m.tool_call_id!,
         }
       } else if (m.role === 'assistant' && m.tool_calls) {
         // Assistant with tool calls
         return {
           role: 'assistant' as const,
-          content: m.content || null,
+          content: typeof m.content === 'string' ? m.content : m.content.find(b => b.type === 'text')?.text || null,
           tool_calls: m.tool_calls,
         }
       } else {
-        // Regular message
+        // Regular message or vision message
+        let content: any = m.content
+
+        // Convert our ContentBlock[] format to OpenAI's format
+        if (Array.isArray(m.content)) {
+          content = m.content.map(block => {
+            if (block.type === 'text') {
+              return { type: 'text', text: block.text }
+            } else if (block.type === 'image') {
+              // Convert base64 image to OpenAI format
+              const { media_type, data } = block.source
+              return {
+                type: 'image_url',
+                image_url: {
+                  url: `data:${media_type};base64,${data}`
+                }
+              }
+            }
+            return block
+          })
+        }
+
         return {
           role: m.role as 'system' | 'user' | 'assistant',
-          content: m.content,
+          content,
         }
       }
     })
@@ -85,19 +106,41 @@ export class OpenAIProvider extends BaseLLMProvider {
       if (m.role === 'tool') {
         return {
           role: 'tool' as const,
-          content: m.content,
+          content: typeof m.content === 'string' ? m.content : m.content.find(b => b.type === 'text')?.text || '',
           tool_call_id: m.tool_call_id!,
         }
       } else if (m.role === 'assistant' && m.tool_calls) {
         return {
           role: 'assistant' as const,
-          content: m.content || null,
+          content: typeof m.content === 'string' ? m.content : m.content.find(b => b.type === 'text')?.text || null,
           tool_calls: m.tool_calls,
         }
       } else {
+        // Regular message or vision message
+        let content: any = m.content
+
+        // Convert our ContentBlock[] format to OpenAI's format
+        if (Array.isArray(m.content)) {
+          content = m.content.map(block => {
+            if (block.type === 'text') {
+              return { type: 'text', text: block.text }
+            } else if (block.type === 'image') {
+              // Convert base64 image to OpenAI format
+              const { media_type, data } = block.source
+              return {
+                type: 'image_url',
+                image_url: {
+                  url: `data:${media_type};base64,${data}`
+                }
+              }
+            }
+            return block
+          })
+        }
+
         return {
           role: m.role as 'system' | 'user' | 'assistant',
-          content: m.content,
+          content,
         }
       }
     })
