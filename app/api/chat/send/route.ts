@@ -61,9 +61,10 @@ export async function POST(request: Request) {
         // Process and save file attachments if any
         let fileContext = ''
         if (files && files.length > 0) {
-          console.log('[Files] Processing', files.length, 'file(s)')
+          console.log('[Files] Processing', files.length, 'file(s)', files)
 
           for (const fileData of files) {
+            console.log('[Files] Processing file:', fileData.fileName, 'Category:', fileData.category, 'Has extractedText:', !!fileData.extractedText, 'Text length:', fileData.extractedText?.length)
             try {
               // Save file attachment to database
               const { error: fileError } = await supabase
