@@ -136,26 +136,40 @@ export async function processExcelFile(
 }
 
 /**
- * Process PDF file and extract text content
+ * Process PDF file and extract text content using pdfjs-dist (browser-compatible)
  */
 export async function processPdfFile(
   file: File
 ): Promise<FileProcessingResult> {
   try {
-    // Dynamic import to avoid SSR issues - pdf-parse uses named export in ESM
-    const pdfParseModule: any = await import('pdf-parse');
-    const pdfParse = pdfParseModule.default || pdfParseModule;
+    // Dynamic import pdfjs-dist (browser-compatible)
+    const pdfjsLib = await import('pdfjs-dist');
+
+    // Set worker source
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
     const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
 
-    const data = await pdfParse(buffer);
+    // Load the PDF document
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+    const textContent: string[] = [];
+
+    // Extract text from each page
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const content = await page.getTextContent();
+      const pageText = content.items
+        .map((item: any) => item.str)
+        .join(' ');
+      textContent.push(pageText);
+    }
 
     return {
       success: true,
-      extractedText: data.text,
+      extractedText: textContent.join('\n\n'),
       metadata: {
-        pageCount: data.numpages,
+        pageCount: pdf.numPages,
       },
     };
   } catch (error) {
