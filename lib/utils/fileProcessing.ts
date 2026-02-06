@@ -143,7 +143,7 @@ export async function processPdfFile(
 ): Promise<FileProcessingResult> {
   try {
     // Dynamic import to avoid SSR issues - pdf-parse uses named export in ESM
-    const pdfParseModule = await import('pdf-parse');
+    const pdfParseModule: any = await import('pdf-parse');
     const pdfParse = pdfParseModule.default || pdfParseModule;
 
     const arrayBuffer = await file.arrayBuffer();
