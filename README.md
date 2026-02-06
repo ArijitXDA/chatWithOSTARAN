@@ -7,10 +7,16 @@ A premium AI chat platform built with Next.js, Supabase, and multiple LLM provid
 - 🤖 Multiple AI Models (Claude, GPT-4, Gemini)
 - 🎭 Smart Personas (Researcher, Professor, Student, Marketing Manager, HR Manager)
 - 💬 Conversation Memory & Thread Management
+- 📎 **File Upload Support** (Images, PDFs, Excel, Word docs)
+- 👁️ **Vision Capabilities** (Image analysis with Claude & GPT-4)
+- 📄 **Document Analysis** (Extract and analyze text from PDFs, Word, Excel)
 - 🔐 Secure Authentication with Supabase
 - 🎨 Premium, ChatGPT-like UI
 - 📊 Temperature Control
 - 🌊 Streaming Responses
+- 🔍 Web Search Integration
+- 🛠️ Custom Persona Builder
+- 👥 Group Chat Support
 
 ## Setup Instructions
 

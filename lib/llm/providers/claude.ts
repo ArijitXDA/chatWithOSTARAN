@@ -25,14 +25,14 @@ export class ClaudeProvider extends BaseLLMProvider {
 
     const systemMessages = params.messages
       .filter(m => m.role === 'system')
-      .map(m => m.content)
+      .map(m => typeof m.content === 'string' ? m.content : m.content.find(b => b.type === 'text')?.text || '')
       .join('\n\n')
 
     const conversationMessages = params.messages
       .filter(m => m.role !== 'system')
       .map(m => ({
         role: m.role as 'user' | 'assistant',
-        content: m.content,
+        content: m.content, // Can be string or ContentBlock[] - Claude SDK handles both
       }))
 
     const response = await this.client!.messages.create({
@@ -58,14 +58,14 @@ export class ClaudeProvider extends BaseLLMProvider {
 
     const systemMessages = params.messages
       .filter(m => m.role === 'system')
-      .map(m => m.content)
+      .map(m => typeof m.content === 'string' ? m.content : m.content.find(b => b.type === 'text')?.text || '')
       .join('\n\n')
 
     const conversationMessages = params.messages
       .filter(m => m.role !== 'system')
       .map(m => ({
         role: m.role as 'user' | 'assistant',
-        content: m.content,
+        content: m.content, // Can be string or ContentBlock[] - Claude SDK handles both
       }))
 
     const stream = await this.client!.messages.create({

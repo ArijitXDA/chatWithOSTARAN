@@ -25,7 +25,7 @@ export async function POST(request: Request) {
           return
         }
 
-        const { threadId, content, config } = await request.json()
+        const { threadId, content, config, files } = await request.json()
 
         // Load thread
         const { data: thread, error: threadError } = await supabase
@@ -39,8 +39,8 @@ export async function POST(request: Request) {
           return
         }
 
-        // Save user message
-        const { error: userMsgError } = await supabase
+        // Save user message and get its ID for file attachments
+        const { data: savedMessage, error: userMsgError } = await supabase
           .from('messages')
           .insert({
             thread_id: threadId,
@@ -48,9 +48,57 @@ export async function POST(request: Request) {
             content: content,
             token_count: estimateTokens(content),
           })
+          .select()
+          .single()
 
-        if (userMsgError) {
+        if (userMsgError || !savedMessage) {
           console.error('Error saving user message:', userMsgError)
+          throw new Error('Failed to save user message')
+        }
+
+        const messageId = savedMessage.id
+
+        // Process and save file attachments if any
+        let fileContext = ''
+        if (files && files.length > 0) {
+          console.log('[Files] Processing', files.length, 'file(s)')
+
+          for (const fileData of files) {
+            try {
+              // Save file attachment to database
+              const { error: fileError } = await supabase
+                .from('file_attachments')
+                .insert({
+                  message_id: messageId,
+                  user_id: user.id,
+                  file_name: fileData.fileName,
+                  file_type: fileData.fileType,
+                  file_size: fileData.fileSize,
+                  file_category: fileData.category,
+                  storage_path: `${user.id}/${messageId}/${fileData.fileName}`,
+                  storage_bucket: 'chat-attachments',
+                  extracted_text: fileData.extractedText,
+                  width: fileData.width,
+                  height: fileData.height,
+                  processing_status: 'completed',
+                })
+
+              if (fileError) {
+                console.error('[Files] Error saving file attachment:', fileError)
+              } else {
+                // Add file content to context
+                if (fileData.category === 'image') {
+                  // For images, we'll handle vision later
+                  fileContext += `\n\n[Image attached: ${fileData.fileName}]`
+                } else if (fileData.extractedText) {
+                  // For documents, add extracted text
+                  fileContext += `\n\n[Content from ${fileData.fileName}]:\n${fileData.extractedText}\n`
+                }
+              }
+            } catch (error) {
+              console.error('[Files] Error processing file:', error)
+            }
+          }
         }
 
         // Load conversation history
@@ -106,6 +154,11 @@ export async function POST(request: Request) {
           }
         }
 
+        // Add file context to enriched content
+        if (fileContext) {
+          enrichedContent = `${enrichedContent}\n\n${fileContext}`
+        }
+
         // Assemble prompt
         const llmMessages = assemblePrompt({
           persona: config.persona,
@@ -113,6 +166,46 @@ export async function POST(request: Request) {
           userPrompt: enrichedContent,
           customSystemPrompt,
         })
+
+        // Add vision support: Convert last user message to content blocks if images are present
+        if (files && files.length > 0) {
+          const imageFiles = files.filter(f => f.category === 'image' && f.base64Data)
+
+          if (imageFiles.length > 0) {
+            // Find the last user message (just added by assemblePrompt)
+            const lastMessageIndex = llmMessages.length - 1
+            const lastMessage = llmMessages[lastMessageIndex]
+
+            if (lastMessage && lastMessage.role === 'user' && typeof lastMessage.content === 'string') {
+              // Convert to content blocks format
+              const contentBlocks: any[] = []
+
+              // Add text block
+              if (lastMessage.content.trim()) {
+                contentBlocks.push({
+                  type: 'text',
+                  text: lastMessage.content
+                })
+              }
+
+              // Add image blocks
+              imageFiles.forEach(img => {
+                contentBlocks.push({
+                  type: 'image',
+                  source: {
+                    type: 'base64',
+                    media_type: img.fileType,
+                    data: img.base64Data
+                  }
+                })
+              })
+
+              // Replace string content with content blocks
+              llmMessages[lastMessageIndex].content = contentBlocks
+              console.log(`[Vision] Added ${imageFiles.length} image(s) to message`)
+            }
+          }
+        }
 
         // Get LLM provider
         const provider = getProvider(config.model)
