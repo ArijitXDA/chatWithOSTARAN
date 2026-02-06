@@ -13,6 +13,8 @@ export const FILE_SIZE_LIMITS = {
   pdf: 20 * 1024 * 1024, // 20MB
   excel: 15 * 1024 * 1024, // 15MB
   document: 10 * 1024 * 1024, // 10MB
+  spreadsheet: 15 * 1024 * 1024, // 15MB (same as excel)
+  other: 10 * 1024 * 1024, // 10MB
   default: 10 * 1024 * 1024, // 10MB
 };
 
