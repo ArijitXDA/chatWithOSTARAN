@@ -3,13 +3,26 @@
  * Handles tool calling workflow between LLM and MCP servers
  */
 
-import { LLMProvider, LLMMessage, LLMChatParams, LLMChatResponse } from '../llm/types'
+import { LLMProvider, LLMMessage, LLMChatParams, LLMChatResponse, ContentBlock } from '../llm/types'
 import { getMCPTools, callMCPTool, parseToolCall, formatToolsForLLM } from './index'
 
 export interface ToolExecutionResult {
   response: string
   toolCalls: number
   toolsUsed: string[]
+}
+
+/**
+ * Helper function to extract text from content (handles both string and ContentBlock[])
+ */
+function extractTextFromContent(content: string | ContentBlock[] | undefined): string {
+  if (!content) return ''
+  if (typeof content === 'string') return content
+  // If it's ContentBlock[], extract text from text blocks
+  return content
+    .filter(block => block.type === 'text')
+    .map(block => block.text)
+    .join('\n')
 }
 
 /**
@@ -153,7 +166,7 @@ export async function chatWithTools(
   console.warn('[MCP Tools] Max iterations reached, returning last response')
 
   return {
-    response: conversationMessages[conversationMessages.length - 1]?.content || '',
+    response: extractTextFromContent(conversationMessages[conversationMessages.length - 1]?.content),
     toolCalls: toolCallCount,
     toolsUsed,
   }
