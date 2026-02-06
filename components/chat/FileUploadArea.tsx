@@ -77,9 +77,18 @@ export function FileUploadArea({ files, onFilesChange, maxFiles = 5 }: FileUploa
         }
       } else {
         // For non-image files, extract text content
+        console.log(`[FileUpload] Processing ${category} file:`, file.name)
         const result = await processFile(file, category)
         if (result.success && result.extractedText) {
           uploadedFile.extractedText = result.extractedText
+          console.log(`[FileUpload] Extracted ${result.extractedText.length} characters from ${file.name}`)
+          // Show success feedback for document processing
+          if (category === 'document') {
+            toast.success(`✓ Extracted text from ${file.name} (${result.metadata?.pageCount || 'unknown'} pages)`)
+          }
+        } else {
+          console.error(`[FileUpload] Failed to extract text from ${file.name}:`, result.error)
+          toast.error(`Failed to extract text from ${file.name}`)
         }
       }
 
