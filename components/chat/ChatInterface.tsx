@@ -157,6 +157,13 @@ export function ChatInterface({ userName, userEmail, onSignOut }: ChatInterfaceP
         base64Data: f.base64Data, // For vision support
       }))
 
+      console.log('[ChatInterface] Sending message with files:', filesData?.length || 0)
+      if (filesData && filesData.length > 0) {
+        filesData.forEach((f, i) => {
+          console.log(`[ChatInterface] File ${i}: ${f.fileName}, category: ${f.category}, hasExtractedText: ${!!f.extractedText}, textLength: ${f.extractedText?.length || 0}`)
+        })
+      }
+
       const response = await fetch('/api/chat/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
