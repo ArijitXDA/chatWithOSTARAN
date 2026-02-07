@@ -106,6 +106,21 @@ export async function POST(request: Request) {
           }
         }
 
+        // If we have file context, update the saved user message to include it
+        // This ensures the conversation history contains the PDF text for follow-up questions
+        if (fileContext) {
+          const enrichedUserContent = `${content}${fileContext}`
+          console.log('[Files] Updating user message with file context for conversation history')
+
+          await supabase
+            .from('messages')
+            .update({
+              content: enrichedUserContent,
+              token_count: estimateTokens(enrichedUserContent),
+            })
+            .eq('id', messageId)
+        }
+
         // Load conversation history
         const { data: messages, error: messagesError } = await supabase
           .from('messages')
