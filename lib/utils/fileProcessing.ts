@@ -145,8 +145,12 @@ export async function processPdfFile(
     // Dynamic import pdfjs-dist (browser-compatible)
     const pdfjsLib = await import('pdfjs-dist');
 
-    // Use a stable, working CDN URL for the worker (v3.11.174 is known to work)
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    // Use worker from the pdfjs-dist package itself (matches installed version)
+    // This ensures API and Worker versions always match
+    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+      'pdfjs-dist/build/pdf.worker.min.mjs',
+      import.meta.url
+    ).toString();
 
     const arrayBuffer = await file.arrayBuffer();
 
