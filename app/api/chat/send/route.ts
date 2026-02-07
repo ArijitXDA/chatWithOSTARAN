@@ -65,8 +65,19 @@ export async function POST(request: Request) {
 
           for (const fileData of files) {
             console.log('[Files] Processing file:', fileData.fileName, 'Category:', fileData.category, 'Has extractedText:', !!fileData.extractedText, 'Text length:', fileData.extractedText?.length)
+
+            // Add file content to context FIRST (before DB operations that might fail)
+            if (fileData.category === 'image') {
+              // For images, we'll handle vision later
+              fileContext += `\n\n[Image attached: ${fileData.fileName}]`
+            } else if (fileData.extractedText) {
+              // For documents, add extracted text
+              console.log('[Files] Adding extracted text to context')
+              fileContext += `\n\n[Content from ${fileData.fileName}]:\n${fileData.extractedText}\n`
+            }
+
+            // Try to save file attachment to database (optional - doesn't block text processing)
             try {
-              // Save file attachment to database
               const { error: fileError } = await supabase
                 .from('file_attachments')
                 .insert({
@@ -85,19 +96,12 @@ export async function POST(request: Request) {
                 })
 
               if (fileError) {
-                console.error('[Files] Error saving file attachment:', fileError)
+                console.error('[Files] Error saving file attachment to DB (non-blocking):', fileError)
               } else {
-                // Add file content to context
-                if (fileData.category === 'image') {
-                  // For images, we'll handle vision later
-                  fileContext += `\n\n[Image attached: ${fileData.fileName}]`
-                } else if (fileData.extractedText) {
-                  // For documents, add extracted text
-                  fileContext += `\n\n[Content from ${fileData.fileName}]:\n${fileData.extractedText}\n`
-                }
+                console.log('[Files] Successfully saved file metadata to DB')
               }
             } catch (error) {
-              console.error('[Files] Error processing file:', error)
+              console.error('[Files] Error with DB operation (non-blocking):', error)
             }
           }
         }
